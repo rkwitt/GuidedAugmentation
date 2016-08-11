@@ -1,0 +1,24 @@
+To get better bounding boxes for objects, first set the environemt variable
+SUNRGBD_dir to the base directory of the SUNRGBD database, e.g.,
+
+>> setenv('SUNRGB_dir', '/Volumes/STORE/SUN-RGBD/');
+
+Then, load
+
+>> load ('/Volumes/STORE/SUN-RGBD/SUNRGBDtoolbox/Metadata/SUNRGBDMeta.mat');
+
+and run
+
+>> obj_info = ga_extract_refined_object_BB(SUNRGBDMeta, 'chair', 0);
+
+or
+
+>> obj_info = ga_extract_original_object_BB(SUNRGBDMeta, 'chair',0);
+
+Then, save
+
+>> save_fastRCNN(chairs, '/tmp/chairs','/Volumes/STORE/SUN-RGBD/')
+
+Now, you can compute features for the BBs as
+
+python ga.py --input /tmp/chairs/img_list.txt
