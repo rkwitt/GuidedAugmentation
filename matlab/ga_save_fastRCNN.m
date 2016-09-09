@@ -1,4 +1,4 @@
-function ga_save_fastRCNN(objs, out_dir, rmPrefix)
+function pruned = ga_save_fastRCNN(objs, out_dir, rmPrefix)
 
 
 % create output dir
@@ -11,6 +11,7 @@ img_list_fid = fopen(img_list_file,'w');
 
 
 N=length(objs);
+cnt = 1;
 for i=1:N
    
     tmp = objs(i).bb;
@@ -35,7 +36,8 @@ for i=1:N
         objs(i).depth);
     
     save(bb_mat_full_file, 'boxes');
-    
+    pruned(cnt) = objs(i);
+    cnt = cnt + 1;
 end
 
 fclose(img_list_fid);

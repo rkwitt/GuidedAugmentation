@@ -1,6 +1,5 @@
 function obj_info = ga_extract_refined_object_BB(SUNRGBDMeta, query_obj, verbose)
 
-    % N images
     N = length(SUNRGBDMeta);
     
     obj_cnt = 0;
@@ -32,6 +31,7 @@ function obj_info = ga_extract_refined_object_BB(SUNRGBDMeta, query_obj, verbose
         seg_label = seg.seglabel;
         seg_names = seg.names;
         
+        % Iterate over all names of annotated segmented OBJECTS
         for j=1:length(seg_names)
             
             target = seg_names{j};
@@ -44,7 +44,6 @@ function obj_info = ga_extract_refined_object_BB(SUNRGBDMeta, query_obj, verbose
                 end
                 bb = rp.BoundingBox;
                 
-                
                 found_cnt = 0;
                 found_box = 0; 
                 nobjs = size(data.groundtruth3DBB, 2);
@@ -53,7 +52,7 @@ function obj_info = ga_extract_refined_object_BB(SUNRGBDMeta, query_obj, verbose
                         
                         bb_tmp = data.groundtruth2DBB(k).gtBb2D;
                         IoU = bboxOverlapRatio(bb_tmp, bb);
-                        if (IoU >=0.9)
+                        if (IoU >=0.5)
                             found_cnt = found_cnt + 1;
                             found_box = bb_tmp;
                             found_dep = norm(data.groundtruth3DBB(k).centroid);
@@ -64,7 +63,11 @@ function obj_info = ga_extract_refined_object_BB(SUNRGBDMeta, query_obj, verbose
                 if ~found_cnt
                     continue;
                 end
-                assert(found_cnt==1);
+                
+                if found_cnt > 1
+                    verbose = 1;
+                end
+                
                 obj_cnt = obj_cnt + 1;
                 
                 rgb_img_file = fullfile(...
@@ -73,11 +76,11 @@ function obj_info = ga_extract_refined_object_BB(SUNRGBDMeta, query_obj, verbose
                     'image', ...
                     SUNRGBDMeta(i).rgbname);
                 
-                obj_info(obj_cnt).img_idx = i;                  % image index
-                obj_info(obj_cnt).depth = found_dep;            % obj. depth
-                obj_info(obj_cnt).bb = bb;                      % bbox
-                obj_info(obj_cnt).seg_file = seg_mat_file;      % segmentation file
-                obj_info(obj_cnt).img_file = rgb_img_file;       % image file
+                obj_info(obj_cnt).img_idx   = i;                    % image index
+                obj_info(obj_cnt).depth     = found_dep;            % obj. depth
+                obj_info(obj_cnt).bb        = bb;                   % bbox
+                obj_info(obj_cnt).seg_file  = seg_mat_file;         % segmentation file
+                obj_info(obj_cnt).img_file  = rgb_img_file;         % image file
                 
                 if verbose
                     disp(obj_cnt);
