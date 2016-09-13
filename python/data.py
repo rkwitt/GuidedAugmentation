@@ -8,10 +8,11 @@ from sklearn.externals import joblib
 from sklearn import cross_validation
 import h5py
 
-# Make things reproducibe
-np.random.seed(1234)
+# make things reproducibe
+seed = 1234
+np.random.seed(seed)
 
-# Setup cmdline parsing
+# setup cmdline parsing
 parser = argparse.ArgumentParser(description='Data preparation for VAE')
 parser.add_argument('--data', dest='data', help='Data file')
 parser.add_argument('--beg_src', dest='beg_src', type=float, default=0, help='Lower depth value (Source)')
@@ -21,7 +22,6 @@ parser.add_argument('--end_dst', dest='end_dst', type=float, default=2, help='Up
 parser.add_argument('--out_dir', dest='out_dir', default='/tmp/', help='Output directory')
 args = parser.parse_args()
 
-# Setup cmdline logging
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 if not os.path.exists(args.out_dir):
@@ -33,11 +33,11 @@ with h5py.File(args.data, 'r') as f:
 	X = np.array(f.get('data'))
 	Y = np.array(f.get('meta'))
 
-# Training/Testing split - Everything we do learn here-on will be done on training
-X_trn, X_tst = cross_validation.train_test_split(X, test_size=0.4, random_state=1234)
-p_trn, p_tst = cross_validation.train_test_split(np.arange(X.shape[0]), test_size=0.4, random_state=1234)
+# training/Testing split - Everything we do learn here-on will be done on training
+X_trn, X_tst = cross_validation.train_test_split(X, test_size=0.4, random_state=seed)
+p_trn, p_tst = cross_validation.train_test_split(np.arange(X.shape[0]), test_size=0.4, random_state=seed)
 
-# Split meta data accordingly
+# split meta data accordingly
 Y_trn = Y[p_trn,:]
 Y_tst = Y[p_tst,:]
 
@@ -59,6 +59,11 @@ y_tst = Y_tst[:,-1]
 
 p_trn_src = np.where((y_trn >= args.beg_src) & (y_trn < args.end_src))[0]
 p_trn_dst = np.where((y_trn >= args.beg_dst) & (y_trn < args.end_dst))[0]
+
+print(y_trn[p_trn_dst].min())
+print(y_trn[p_trn_dst].max())
+print(y_trn[p_trn_src].min())
+print(y_trn[p_trn_src].max())
 
 f.create_dataset("p_trn", data=p_trn+1)
 f.create_dataset("p_tst", data=p_tst+1)
