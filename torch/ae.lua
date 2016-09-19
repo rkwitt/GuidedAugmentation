@@ -31,22 +31,29 @@ print('#Target data points: '..dst:size(1)..'x'..dst:size(2))
 logger = optim.Logger(opt.logFile)
 
 -- very simple encoder/decoder architecture
+local p=0.5
 local ae = nn.Sequential()
-ae:add(nn.Linear(D,128))            -- ENC: dim -> 128
+ae:add(nn.Linear(D,512))            -- ENC: dim -> 128
 ae:add(nn.ReLU())                   -- ENC: ReLU
---ae:add(nn.BatchNormalization(128))  -- ENC: BatchNormalization
-ae:add(nn.Dropout(0.2))             -- ENC: dropout
+ae:add(nn.Dropout(p))             -- ENC: dropout
 
-ae:add(nn.Linear(128,64))           -- ENC: 128 -> 64
+ae:add(nn.Linear(512,256))          -- ENC: 128 -> 64
 ae:add(nn.ReLU())                   -- ENC: ReLU
---ae:add(nn.BatchNormalization(64))   -- ENC: BatchNormalization
+ae:add(nn.Dropout(p))             -- ENC: dropout
 
-ae:add(nn.Linear(64,128))           -- DEC: 64 -> 128
-ae:add(nn.ReLU())                   -- DEC: tanh non-linearity
---ae:add(nn.BatchNormalization(128))  -- DEC: BatchNormalization
-ae:add(nn.Dropout(0.2))             -- DEC: dropout
+ae:add(nn.Linear(256,64))          -- ENC: 128 -> 64
+ae:add(nn.ReLU())                   -- ENC: ReLU
+ae:add(nn.Dropout(p))             -- ENC: dropout
 
-ae:add(nn.Linear(128,D))            -- DEC: 128 -> dim
+ae:add(nn.Linear(64,256))           -- DEC: 64 -> 128
+ae:add(nn.ReLU())                   -- DEC: ReLU
+ae:add(nn.Dropout(p))             -- DEC: dropout
+
+ae:add(nn.Linear(256,512))          -- DEC: 64 -> 128
+ae:add(nn.ReLU())                   -- DEC: ReLU
+ae:add(nn.Dropout(p))             -- DEC: dropout
+
+ae:add(nn.Linear(512,D))            -- DEC: 128 -> dim
 ae:add(nn.ReLU())
 print(ae)
 
