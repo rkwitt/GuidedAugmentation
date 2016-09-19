@@ -32,15 +32,21 @@ logger = optim.Logger(opt.logFile)
 
 -- very simple encoder/decoder architecture
 local ae = nn.Sequential()
-ae:add(nn.Linear(D,128))    -- ENC: dim -> 128
-ae:add(nn.ReLU())           -- ENC: ReLU
-ae:add(nn.Dropout(0.2))     -- ENC: dropout
-ae:add(nn.Linear(128,64))   -- ENC: 128 -> 64
-ae:add(nn.Tanh())           -- ENC: tanh non-linearity
-ae:add(nn.Linear(64,128))   -- DEC: 64 -> 128
-ae:add(nn.Tanh())           -- DEC: tanh non-linearity
-ae:add(nn.Dropout(0.2))     -- DEC: dropout
-ae:add(nn.Linear(128,D))    -- DEC: 128 -> dim
+ae:add(nn.Linear(D,128))            -- ENC: dim -> 128
+ae:add(nn.ReLU())                   -- ENC: ReLU
+--ae:add(nn.BatchNormalization(128))  -- ENC: BatchNormalization
+ae:add(nn.Dropout(0.2))             -- ENC: dropout
+
+ae:add(nn.Linear(128,64))           -- ENC: 128 -> 64
+ae:add(nn.ReLU())                   -- ENC: ReLU
+--ae:add(nn.BatchNormalization(64))   -- ENC: BatchNormalization
+
+ae:add(nn.Linear(64,128))           -- DEC: 64 -> 128
+ae:add(nn.ReLU())                   -- DEC: tanh non-linearity
+--ae:add(nn.BatchNormalization(128))  -- DEC: BatchNormalization
+ae:add(nn.Dropout(0.2))             -- DEC: dropout
+
+ae:add(nn.Linear(128,D))            -- DEC: 128 -> dim
 ae:add(nn.ReLU())
 print(ae)
 
@@ -52,7 +58,7 @@ print(config)
 local theta, gradTheta = ae:getParameters()
 
 -- MSE loss
-local criterion = nn.AbsCriterion()
+local criterion = nn.MSECriterion()
 
 local x -- minibatch src
 local y -- minibatch dst
@@ -92,6 +98,7 @@ for epoch = 1, opt.epochs do
   end
 end
 
+-- TODO: should be done better (e.g., using -test as cmdline option)
 out = ae:forward(tst)
 local out_fid = hdf5.open('/Users/rkwitt/Remote/GuidedAugmentation/python/test/prediction.hdf5', 'w')
 out_fid:write('/prediction', ae:forward(tst))

@@ -5,6 +5,7 @@ import numpy as np
 import argparse
 import logging
 from sklearn.externals import joblib
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn import cross_validation
 import h5py
 
@@ -29,6 +30,9 @@ Y = None
 with h5py.File(args.data_file, 'r') as f:
 	X = np.array(f.get('data'))
 	Y = np.array(f.get('meta'))
+
+# !!!DEBUG!!!
+# X = MinMaxScaler(feature_range=(-1,1)).fit_transform(X)
 
 # training/Testing split - Everything we do learn here-on will be done on training
 X_trn, X_tst = cross_validation.train_test_split(X, test_size=0.4, random_state=seed)
@@ -64,8 +68,8 @@ f.create_dataset("p_trn", data=p_trn+1) # indices of training data
 f.create_dataset("p_tst", data=p_tst+1) # indices of testing data
 f.create_dataset("p_source", data=p_source+1) # indices of (full) source training data
 f.create_dataset("p_target", data=p_target+1) # indices of (full) target training data
-f.create_dataset("p_source_trn", data=p_source_val+1) # indices of source training data
-f.create_dataset("p_source_val", data=p_source_trn+1) # indices of source validation data
+f.create_dataset("p_source_trn", data=p_source_trn+1) # indices of source training data
+f.create_dataset("p_source_val", data=p_source_val+1) # indices of source validation data
 
 f.create_dataset("X_trn", data=X_trn) # training data
 f.create_dataset("X_tst", data=X_tst) # testing data

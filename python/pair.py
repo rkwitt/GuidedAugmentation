@@ -36,8 +36,9 @@ def pairing_by_neighbor(X, Y):
 	S = np.sort(D, axis=1) # -- DEBUG only
 
 	# make sure the sorting is correct
-	i = np.random.randint(0,D.shape[0])
-	j = np.random.randint(0,D.shape[0])
+	min_idx = np.min(D.shape)
+	i = np.random.randint(0, min_idx)
+	j = np.random.randint(0, min_idx)
 	assert (np.abs(D[i,j] - pairwise_distances(X[i,:], Y[j,:])) < 1e-9)
 
 	# allocate space for closest neighbors
@@ -64,6 +65,10 @@ with h5py.File(args.data_file, "r") as f:
 	X_source_trn = np.array(f.get("X_source_trn")) # source (training) data
 	X_source_val = np.array(f.get("X_source_val")) # source (validation) data
 	tmp = np.array(f.get("X_target")) # target data
+
+print X_source_trn.shape
+print tmp.shape
+
 
 # pair each activation
 X_target = pairing_by_neighbor(X_source_trn, tmp)

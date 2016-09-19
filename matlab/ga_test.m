@@ -13,7 +13,7 @@ X_target_est = hdf5read(fullfile(base_path, 'prediction.hdf5'), 'prediction')';
 % load testing data = external database used for retrieval experiment
 X_tst = hdf5read(fullfile(base_path, 'output.hdf5'), 'X_tst')';
 
-% load indices?
+% load indices
 p_trn    = hdf5read(fullfile(base_path, 'output.hdf5'), 'p_trn'); % trn indices (for FULL data)
 p_tst    = hdf5read(fullfile(base_path, 'output.hdf5'), 'p_tst'); % tst indices (for FULL data)
 p_source = hdf5read(fullfile(base_path, 'output.hdf5'), 'p_source'); % trn indices for source (w.r.t. training data) 
@@ -32,34 +32,36 @@ obj_info_source_trn = obj_info_source(p_source_trn);
 obj_info_source_val = obj_info_source(p_source_val);
 
 
-for i=1:100
-    
+depths = [];
+for i=1:length(obj_info_source_val)
     % show query object
-    subplot(1,4,1);
-    im = imread(obj_info_source_val(i).img_file);
-    imshow(im);
+    %subplot(1,4,1);
+    %im = imread(obj_info_source_val(i).img_file);
+    %imshow(im);
     
     % show bounding box of query object
-    bb = obj_info_source_val(i).bb;
-    rectangle('Position',[bb(1),bb(2),bb(3),bb(4) ], 'EdgeColor','blue', 'LineWidth',3);
-    title(sprintf('Query image + depth: %.2f [m]', obj_info_source_val(i).depth));
+    %bb = obj_info_source_val(i).bb;
+    %rectangle('Position',[bb(1),bb(2),bb(3),bb(4) ], 'EdgeColor','blue', 'LineWidth',3);
+    %title(sprintf('Query image + depth: %.2f [m]', obj_info_source_val(i).depth));
 
     % NN retrieval based on estimated object activations
     retrieval_distances = pdist2(X_tst, X_target_est(i,:));
     [sorted_retrieval_distances, sorted_retrieval_distances_idx] = sort(retrieval_distances);
 
-    depths = [];
+    tmp = [];
     for j=1:3
-        subplot(1,4,1+j);
-        im = imread(obj_info_tst(sorted_retrieval_distances_idx(j)).img_file);
-        imshow(im)
-        bb = obj_info_tst(sorted_retrieval_distances_idx(j)).bb;
-        rectangle('Position',[bb(1),bb(2),bb(3),bb(4) ], 'EdgeColor','blue', 'LineWidth',3);
-        title(sprintf('Retrieved image + depth: %.2f [m]', obj_info_tst(sorted_retrieval_distances_idx(j)).depth));
-        depths = [depths obj_info_tst(sorted_retrieval_distances_idx(j)).depth];
+        %subplot(1,4,1+j);
+        %im = imread(obj_info_tst(sorted_retrieval_distances_idx(j)).img_file);
+        %imshow(im);
+        
+        %bb = obj_info_tst(sorted_retrieval_distances_idx(j)).bb;
+        %rectangle('Position',[bb(1),bb(2),bb(3),bb(4) ], 'EdgeColor','blue', 'LineWidth',3);
+        %title(sprintf('Retrieved image + depth: %.2f [m]', obj_info_tst(sorted_retrieval_distances_idx(j)).depth));
+        
+        tmp = [tmp obj_info_tst(sorted_retrieval_distances_idx(j)).depth];
     end
+    depths = [depths mean(tmp)];
     disp(mean(depths));
-    pause;
 end
 
 
