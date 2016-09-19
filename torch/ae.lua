@@ -14,17 +14,17 @@ local opt = cmd:parse(arg)
 
 -- load some training/testing data
 local fid = hdf5.open(opt.dataFile, 'r')
-local src = fid:read('X_src_trn'):all() -- object activations
-local dst = fid:read('X_res_trn'):all() -- object activations closest to src
-local tst = fid:read('X_tst'):all() -- testing object activations
--- local src = fid:read('/src'):all():transpose(1,2)
--- local dst = fid:read('/dst'):all():transpose(1,2)
+local src = fid:read('X_source_trn'):all() -- (training) object activations
+local tst = fid:read('X_source_val'):all() -- (validation) object activations
+local dst = fid:read('X_target'):all() -- (training) target
+fid:close()
 
 local N = src:size(1) -- nr. of data points
 local D = src:size(2) -- nr. of dimensions
 assert(D==dst:size(2), 'Whoops...')
 
-print('#Source data points: '..N..'x'..D)
+print('#Source (training) data points: '..N..'x'..D)
+print('#Source (validation) data points: '..tst:size(1)..'x'..tst:size(2))
 print('#Target data points: '..dst:size(1)..'x'..dst:size(2))
 
 -- logger
@@ -33,7 +33,7 @@ logger = optim.Logger(opt.logFile)
 -- very simple encoder/decoder architecture
 local ae = nn.Sequential()
 ae:add(nn.Linear(D,128))    -- ENC: dim -> 128
-ae:add(nn.Tanh())           -- ENC: tanh non-linearity
+ae:add(nn.ReLU())           -- ENC: ReLU
 ae:add(nn.Dropout(0.2))     -- ENC: dropout
 ae:add(nn.Linear(128,64))   -- ENC: 128 -> 64
 ae:add(nn.Tanh())           -- ENC: tanh non-linearity
@@ -41,6 +41,7 @@ ae:add(nn.Linear(64,128))   -- DEC: 64 -> 128
 ae:add(nn.Tanh())           -- DEC: tanh non-linearity
 ae:add(nn.Dropout(0.2))     -- DEC: dropout
 ae:add(nn.Linear(128,D))    -- DEC: 128 -> dim
+ae:add(nn.ReLU())
 print(ae)
 
 -- configure optimizer
@@ -51,7 +52,7 @@ print(config)
 local theta, gradTheta = ae:getParameters()
 
 -- MSE loss
-local criterion = nn.MSECriterion()
+local criterion = nn.AbsCriterion()
 
 local x -- minibatch src
 local y -- minibatch dst
@@ -92,6 +93,6 @@ for epoch = 1, opt.epochs do
 end
 
 out = ae:forward(tst)
-local out_fid = hdf5.open('/tmp/prediction.hdf5', 'w')
+local out_fid = hdf5.open('/Users/rkwitt/Remote/GuidedAugmentation/python/test/prediction.hdf5', 'w')
 out_fid:write('/prediction', ae:forward(tst))
 out_fid:close()
