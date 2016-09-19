@@ -1,6 +1,7 @@
+import sys
 import h5py
 
-f = h5py.File("/tmp/mytestfile.hdf5", "w")
+f = h5py.File(sys.argv[3], "w")
 
 import sys
 import numpy as np
@@ -13,6 +14,6 @@ meta = f.create_dataset("meta", data=S)
 
 f.close()
 
-with h5py.File('/tmp/mytestfile.hdf5','r') as f:
+with h5py.File(sys.argv[3],'r') as f:
     data = f.get('data')
     print data.shape
