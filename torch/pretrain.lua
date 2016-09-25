@@ -13,7 +13,13 @@ cmd:option('-learningRate', 0.001, 'Learning rate')
 cmd:option('-target', 4, 'Target covariate')
 cmd:option('-epochs', 10, 'Training epochs')
 cmd:option('-batchSize', 300, 'Batchsize')
+cmd:option('-cuda', false, 'Use CUDA')
 local opt = cmd:parse(arg)
+
+-- try to use CUDA if possible
+if opt.cuda then
+  require 'cunn'
+end
 
 -- logger
 logger = optim.Logger(opt.logFile)
@@ -23,6 +29,10 @@ local fid = hdf5.open(opt.dataFile, 'r')
 local src = fid:read('X_trn'):all():transpose(1,2)
 fid:close()
 
+if opt.cuda then
+  src:cuda()
+end
+
 local N = src:size(1) -- nr. of data points
 local D = src:size(2) -- nr. of dimensions
 print('#Source data points: '..N..'x'..D)
@@ -30,6 +40,9 @@ print('#Source data points: '..N..'x'..D)
 -- load model
 model = dofile(opt.modelFile)
 print(model)
+if opt.cuda then
+  model:cuda()
+end
 
 -- configure optimizer
 local config = { learningRate = opt.learningRate }
@@ -40,6 +53,9 @@ local theta, gradTheta = model:getParameters()
 
 -- MSE loss
 local criterion = nn.MSECriterion()
+if opt.cuda then
+  criterion:cuda()
+end
 
 local x -- minibatch src
 local y -- minibatch dst
@@ -57,13 +73,13 @@ local opfunc = function(params)
   local loss = criterion:forward(x_hat, y)
   -- gradient wrt loss
   local grad_loss = criterion:backward(x_hat, y)
-  -- backpropagate
+  -- backprop
   model:backward(x, grad_loss)
   logger:add({'opfunc [loss]: '..loss})
   return loss, gradTheta
 end
 
-
+-- run over opt.epochs epochs
 for epoch = 1, opt.epochs do
   -- random indices for minibatches
   local indices = torch.randperm(N):long():split(opt.batchSize)
