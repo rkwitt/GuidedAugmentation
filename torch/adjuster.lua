@@ -134,8 +134,8 @@ if opt.predict then
   ae:evaluate()
   local predicted_activations = ae:forward(val)
   fid = hdf5.open(opt.predictionFile, 'w')
-  fid:write('/predicted_activations', predicted_activations)
-  fid:write('/predicted_covariate', prediced_covariate)
-  fid:write('/initial_covariate', regressor:forward(val))
+  fid:write('/predicted_activations', predicted_activations:float())
+  fid:write('/predicted_covariate', prediced_covariate:float())
+  fid:write('/initial_covariate', regressor:forward(val):float())
   fid:close()
 end

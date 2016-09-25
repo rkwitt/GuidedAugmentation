@@ -87,7 +87,7 @@ for epoch = 1, opt.epochs do
     xlua.progress(t, #indices)
     x = X_trn:index(1, v) -- batch data
     y = y_trn:index(1, v) -- batch data regression target
-    if opts.cuda then
+    if opt.cuda then
       x = x:cuda()
       y = y:cuda()
     end
@@ -102,6 +102,11 @@ if opt.test then
   local X_tst = fid:read('X_tst'):all():transpose(1,2)
   local y_tst = fid:read('y_tst'):all()
   fid:close()
+  
+  if opt.cuda then
+  	X_tst = X_tst:cuda()
+  	y_tst = y_tst:cuda()
+  end
 
   assert(D==X_tst:size(2), 'Whoops...')
 
@@ -111,9 +116,12 @@ if opt.test then
   print('MSE [m]: '..y_err)
 
   fid = hdf5.open('/tmp/debug.hdf5', 'w')
-  fid:write('/y_hat', y_hat)
-  fid:write('/y_tst', y_tst)
+  fid:write('/y_hat', y_hat:float())
+  fid:write('/y_tst', y_tst:float())
   fid:close()
 end
 
+if opt.cuda then
+	regressor = regressor:float()
+end
 torch.save(opt.saveModel, regressor)
