@@ -17,7 +17,7 @@ cmd:option('-batchSize', 300, 'Batchsize')
 cmd:option('-cuda', false, 'Use CUDA')
 local opt = cmd:parse(arg)
 
--- try to use CUDA if possible
+-- try to use CUDA if required
 if opt.cuda then
 	require 'cunn'
 	require 'cutorch'

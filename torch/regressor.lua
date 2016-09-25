@@ -13,7 +13,14 @@ cmd:option('-learningRate', 0.001, 'Learning rate')
 cmd:option('-epochs', 10, 'Training epochs')
 cmd:option('-batchSize', 300, 'Batchsize')
 cmd:option('-saveModel', '/tmp/regressor.t7', 'Save model to file')
+cmd:option('-cuda', false, 'Use CUDA')
 local opt = cmd:parse(arg)
+
+-- try to use CUDA if required
+if opt.cuda then
+	require 'cunn'
+	require 'cutorch'
+end
 
 -- logger
 logger = optim.Logger(opt.logFile)
@@ -34,12 +41,18 @@ regressor:add(nn.BatchNormalization(64))
 regressor:add(nn.ReLU())
 regressor:add(nn.Linear(64,1))
 regressor:add(nn.ReLU())
+if opt.cuda then
+  regressor:cuda()
+end
 
 -- get paramters + gradients
 local theta, gradTheta = regressor:getParameters()
 
 -- MSE loss
 local criterion = nn.MSECriterion()
+if opt.cuda then
+  criterion:cuda()
+end
 
 local x -- minibatch src
 local y -- minibatch dst
@@ -74,6 +87,10 @@ for epoch = 1, opt.epochs do
     xlua.progress(t, #indices)
     x = X_trn:index(1, v) -- batch data
     y = y_trn:index(1, v) -- batch data regression target
+    if opts.cuda then
+      x = x:cuda()
+      y = y:cuda()
+    end
     tmp, batch_loss = optim.adam(opfunc, theta, config)
   end
 end
@@ -97,11 +114,6 @@ if opt.test then
   fid:write('/y_hat', y_hat)
   fid:write('/y_tst', y_tst)
   fid:close()
-
-  -- DEBUG
-  -- for i=1,y_hat:size(1) do
-  --   print(y_hat[i][1].."--"..y_tst[i])
-  -- end
 end
 
 torch.save(opt.saveModel, regressor)
