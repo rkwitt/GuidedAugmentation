@@ -19,7 +19,15 @@ cmd:option('-learningRate', 0.001, 'Learning rate')
 cmd:option('-target', 4, 'Target covariate')
 cmd:option('-epochs', 10, 'Training epochs')
 cmd:option('-batchSize', 300, 'Batchsize')
+cmd:option('-cuda', false, 'Use CUDA')
+
 local opt = cmd:parse(arg)
+
+-- try to use CUDA if possible
+if opt.cuda then
+	require 'cunn'
+	require 'cutorch'
+end
 
 -- logger
 logger = optim.Logger(opt.logFile)
@@ -50,6 +58,10 @@ model:add(ae)
 model:add(regressor)
 print(model)
 
+if opt.cuda then
+  model:cuda()
+end
+
 -- configure optimizer
 local config = { learningRate = opt.learningRate }
 print(config)
@@ -59,6 +71,9 @@ local theta, gradTheta = model:getParameters()
 
 -- MSE loss
 local criterion = nn.MSECriterion()
+if opt.cuda then
+  criterion:cuda()
+end
 
 local x -- minibatch src
 local y -- minibatch dst
@@ -92,6 +107,10 @@ for epoch = 1, opt.epochs do
     xlua.progress(t, #indices)
     x = src:index(1, v) -- batch src
     y = torch.Tensor(x:size(1),1):fill(opt.target)
+    if opt.cuda then
+      x = x:cuda()
+      y = y:cuda()
+    end
     tmp, batch_loss = optim.adam(opfunc, theta, config)
   end
 end
@@ -102,6 +121,10 @@ if opt.predict then
   local val = fid:read('X_validation'):all():transpose(1,2)
   fid:close()
 
+  if opt.cuda then
+    val = val:cuda()
+  end
+
   model:evaluate()
   local prediced_covariate = model:forward(val)
   -- DEBUG purposes
@@ -111,8 +134,8 @@ if opt.predict then
   ae:evaluate()
   local predicted_activations = ae:forward(val)
   fid = hdf5.open(opt.predictionFile, 'w')
-  fid:write('/predicted_activations', predicted_activations)
-  fid:write('/predicted_covariate', prediced_covariate)
-  fid:write('/initial_covariate', regressor:forward(val))
+  fid:write('/predicted_activations', predicted_activations:float())
+  fid:write('/predicted_covariate', prediced_covariate:float())
+  fid:write('/initial_covariate', regressor:forward(val):float())
   fid:close()
 end

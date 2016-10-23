@@ -1,4 +1,5 @@
 -- pretraining of AE part --
+require 'torch'
 require 'optim'
 require 'hdf5'
 require 'nn'
@@ -16,9 +17,10 @@ cmd:option('-batchSize', 300, 'Batchsize')
 cmd:option('-cuda', false, 'Use CUDA')
 local opt = cmd:parse(arg)
 
--- try to use CUDA if possible
+-- try to use CUDA if required
 if opt.cuda then
-  require 'cunn'
+	require 'cunn'
+	require 'cutorch'
 end
 
 -- logger
@@ -28,10 +30,6 @@ logger = optim.Logger(opt.logFile)
 local fid = hdf5.open(opt.dataFile, 'r')
 local src = fid:read('X_trn'):all():transpose(1,2)
 fid:close()
-
-if opt.cuda then
-  src:cuda()
-end
 
 local N = src:size(1) -- nr. of data points
 local D = src:size(2) -- nr. of dimensions
@@ -89,6 +87,10 @@ for epoch = 1, opt.epochs do
     xlua.progress(t, #indices)
     x = src:index(1, v) -- batch src
     y = src:index(1, v) -- batch dst
+    if opt.cuda then
+    	x = x:cuda()
+    	y = y:cuda()
+    end
     tmp, batch_loss = optim.adam(opfunc, theta, config)
   end
 end

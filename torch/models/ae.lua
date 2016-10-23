@@ -18,7 +18,6 @@ ae:add(nn.ELU())
 ae:add(nn.Dropout(p))
 
 ae:add(nn.Linear(256, 4096))
--- ae:add(nn.BatchNormalization(4096))
 ae:add(nn.ReLU())
 
 return ae
