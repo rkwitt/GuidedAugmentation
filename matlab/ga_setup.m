@@ -8,8 +8,14 @@ addpath(fullfile(pwd, 'selective_search/Dependencies/FelzenSegment/'));
 
 % Load system-specific configuration
 if strcmp(sysType, 'MacBook_rkwitt')
-    
+
     config = load('config_MacBook_rkwitt');
     eval('config = config.config_MacBook_rkwitt');
-    
+end
+
+if strcmp(sysType, 'MacBook_eisbaer')
+
+  	config = load('config_eisbaer');
+		eval('config = config.config_eisbaer');
+
 end

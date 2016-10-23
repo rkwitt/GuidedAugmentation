@@ -26,14 +26,24 @@ for i=1:NImages
         config.SUNRGBD_dir, ...
         SUNRGBDMeta_new(i).sequenceName, 'image', ...
         SUNRGBDMeta_new(i).rgbname);
-    
-    newimg_file = sprintf('image_%.5d.jpg', i);
-    
-    [success,~,~] = copyfile(...
-        orgimg_file, ...
-        newimg_file );
+
+	newimg_base = 'image_%.5d';
+	newimg_base = sprintf(newimg_base, i);
+    newimg_file = fullfile( config.SUNRGBD_common, [newimg_base '.jpg'] );
+
+    fprintf(fid, '%s\n', newimg_base);
+
+	if ~exist( newimg_file, 'file' )
+
+    	[success,~,~] = copyfile(...
+        	orgimg_file, ...
+        	newimg_file );
+
+    end
 
 end
+
+fclose(fid);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -43,39 +53,42 @@ end
 disp('Selective search bbox extraction');
 
 for i=1:NImages
-    
+
     imgfile = fullfile(...
-        config.SUNRGBD_dir, ...
-        'images', ...
+        config.SUNRGBD_common, ...
         sprintf('image_%.5d.jpg', i));
     boxfile = fullfile(...
-        config.SUNRGBD_dir, ...
-        'images', ...
+        config.SUNRGBD_common, ...
         sprintf('image_%.5d_ss_boxes.mat', i));
-    
+
     % check if proposal file already exists
     if( exist( boxfile, 'file' ) )
 
         disp([boxfile, ' already exists']);
-        
+
     else
-        
+
         % read original image file
         img = imread(imgfile);
 
         % compute Selective Search proposals
         boxes = selective_search_boxes(img);
-   
+
+		disp(size(boxes));
+		disp(boxfile);
         save(boxfile, 'boxes');
-         
+
         clear boxes img;
-        
+
     end
-    
+
     proplist{i} = boxfile;
-    
+
 end
-   
+
+disp(10);
+pause;
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 1. Load Selective Search bounding boxes
