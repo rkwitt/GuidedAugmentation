@@ -86,10 +86,6 @@ for i=1:NImages
 
 end
 
-disp(10);
-pause;
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 1. Load Selective Search bounding boxes
 % 2. Annotate them with attributes based on IoU with ground truth boxes
@@ -104,67 +100,66 @@ disp('Labeling bounding boxes with attributes');
 AttrLabels = {};
 
 for i=1:NImages
-    
+
     data = SUNRGBDMeta_new(i);
-    
+    disp(['Labeling bounding boxes for image ', num2str(i)]);
+
     % load proposal file
     load( proplist{i} );
-    
+
     Ngt = size(data.groundtruth2DBB, 2);
     Npr = size(boxes, 1);
-    
+
     I_o_u = zeros(Npr, Ngt);
-    
+
     attr_depth = -1000*ones(Npr, 1);
     attr_angle = -1000*ones(Npr, 1);
     prop_label = cell(Npr, 1);
-    
+
     for p =1:Npr
         for k =1:Ngt
-            
+
             bb1 = boxes(p, :);
             bb2 = data.groundtruth2DBB(k).gtBb2D;
-            
+
             if(~isempty(bb2))
-                
+
                 bb2(3:4) = bb2(3:4) + bb2(1:2);
-            
+
                 I_o_u(p, k) = IoU(bb1, bb2);
-            
+
             end
-            
+
             clear bb*
-            
+
         end
     end
-    
+
     max_ovl = max(I_o_u, [], 2);
-    
+
     max_row = find(max_ovl >= 0.5);
-    
+
     for j = 1:size(max_row, 1)
-        
+
         p = max_row(j, 1);
 
         [~, gtb] = max(I_o_u(p, :));
-        
+
         attr_depth(p) = data.groundtruth3DBB(gtb).centroid(2);
         attr_angle(p) = acos(data.groundtruth3DBB(gtb).basis(1));
         prop_label{p} = data.groundtruth3DBB(gtb).classname;
     end
-    
+
     AttrLabels(i).attr_depth = attr_depth;
     AttrLabels(i).attr_angle = attr_angle;
-    AttrLabels(i).filename = filename;
     AttrLabels(i).prop_label = prop_label;
-    
+
     clear I_o_u max_* attr_* prop_* boxes data;
-    
+
 end
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Collect CNN features, scores and attr labels 
+% Collect CNN features, scores and attr labels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 det_Classes = {
@@ -198,21 +193,21 @@ for i=1:length(SUNRGBDMeta_new)
         config.SUNRGBD_dir, ...
         'images', ...
         sprintf('image_%.5d_bbox_features.mat', i) ) );
-    
+
     % saves CNN features and scores in AttrLabels
     AttrLabels(i).CNN_scores = CNN_scores;
     AttrLabels(i).CNN_feature = CNN_feature;
-    
+
     clear CNN_*
 
     % load Selective Search proposals for i-th image
     load( proplist{i} );
-    
+
     % save Selective Search proposals in AttrLabels
     AttrLabels(i).boxes = boxes;
-    
+
     clear boxes;
-    
+
 end
 
 save( fullfile( config.SUNRGBD_dir, 'images', 'AttrLabels' ), 'AttrLabels' );
