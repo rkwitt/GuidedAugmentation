@@ -1,9 +1,20 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copy all SUNRGBD images to some common directory
+%
+% 1. Enumerate all images and rename as image_00001.jpg, ...
+% 2. Copy all original image to common directory
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 load( fullfile(config.SUNRGBD_dir, 'SUNRGBDMeta_correct2D.mat') );
 
 NImages = size(SUNRGBDMeta_new, 2);
 
-proplist = cell(NImages, 1);
+run_image_copy          = 0;
+run_selective_search    = 1;
+run_labeling            = 0;
+run_feature_collection  = 1;
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Copy all SUNRGBD images to some common directory
@@ -12,79 +23,92 @@ proplist = cell(NImages, 1);
 % 2. Copy all original image to common directory
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if ~exist( config.SUNRGBD_common, 'dir' )
-    mkdir(out_dir);
-end
 
-list_file = fullfile( config.SUNRGBD_common, 'allimgs.txt' );
+if run_image_copy
 
-fid = fopen(list_file, 'w');
+    if ~exist( config.SUNRGBD_common, 'dir' )
+        mkdir(out_dir);
+    end
 
-for i=1:NImages
+    list_file = fullfile( config.SUNRGBD_common, 'allimgs.txt' );
 
-    orgimg_file = fullfile(...
-        config.SUNRGBD_dir, ...
-        SUNRGBDMeta_new(i).sequenceName, 'image', ...
-        SUNRGBDMeta_new(i).rgbname);
+    fid = fopen(list_file, 'w');
 
-	newimg_base = 'image_%.5d';
-	newimg_base = sprintf(newimg_base, i);
-    newimg_file = fullfile( config.SUNRGBD_common, [newimg_base '.jpg'] );
+    for i=1:NImages
 
-    fprintf(fid, '%s\n', newimg_base);
+        orgimg_file = fullfile(...
+            config.SUNRGBD_dir, ...
+            SUNRGBDMeta_new(i).sequenceName, 'image', ...
+            SUNRGBDMeta_new(i).rgbname);
 
-	if ~exist( newimg_file, 'file' )
+        newimg_base = 'image_%.5d';
+        newimg_base = sprintf(newimg_base, i);
+        newimg_file = fullfile( config.SUNRGBD_common, [newimg_base '.jpg'] );
 
-    	[success,~,~] = copyfile(...
-        	orgimg_file, ...
-        	newimg_file );
+        fprintf(fid, '%s\n', newimg_base);
+
+        if ~exist( newimg_file, 'file' )
+
+            [success,~,~] = copyfile(...
+                orgimg_file, ...
+                newimg_file );
+
+        end
 
     end
 
+    fclose(fid);
+    
 end
-
-fclose(fid);
-
+    
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Extracting Selective search bounding boxes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-disp('Selective search bbox extraction');
 
-for i=1:NImages
+proplist = cell(NImages, 1);
 
-    imgfile = fullfile(...
-        config.SUNRGBD_common, ...
-        sprintf('image_%.5d.jpg', i));
-    boxfile = fullfile(...
-        config.SUNRGBD_common, ...
-        sprintf('image_%.5d_ss_boxes.mat', i));
+if run_selective_search
 
-    % check if proposal file already exists
-    if( exist( boxfile, 'file' ) )
+    disp('Selective search bbox extraction');
 
-        disp([boxfile, ' already exists']);
+    for i=1:NImages
 
-    else
+        imgfile = fullfile(...
+            config.SUNRGBD_common, ...
+            sprintf('image_%.5d.jpg', i));
+        boxfile = fullfile(...
+            config.SUNRGBD_common, ...
+            sprintf('image_%.5d_ss_boxes.mat', i));
 
-        % read original image file
-        img = imread(imgfile);
+        % check if proposal file already exists
+        if( exist( boxfile, 'file' ) )
 
-        % compute Selective Search proposals
-        boxes = selective_search_boxes(img);
+            disp([boxfile, ' already exists']);
 
-		disp(size(boxes));
-		disp(boxfile);
-        save(boxfile, 'boxes');
+        else
 
-        clear boxes img;
+            % read original image file
+            img = imread(imgfile);
+
+            % compute Selective Search proposals
+            boxes = selective_search_boxes(img);
+
+            disp(size(boxes));
+            disp(boxfile);
+            save(boxfile, 'boxes');
+
+            clear boxes img;
+
+        end
+
+        proplist{i} = sprintf('image_%.5d_ss_boxes.mat', i);
 
     end
-
-    proplist{i} = boxfile;
-
+    
 end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 1. Load Selective Search bounding boxes
@@ -95,69 +119,73 @@ end
 % For background proposals Attribute labels = -1000
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-disp('Labeling bounding boxes with attributes');
+if run_labeling 
 
-AttrLabels = {};
+    disp('Labeling bounding boxes with attributes');
 
-for i=1:NImages
+    AttrLabels = {};
 
-    data = SUNRGBDMeta_new(i);
-    disp(['Labeling bounding boxes for image ', num2str(i)]);
+    for i=1:NImages
 
-    % load proposal file
-    load( proplist{i} );
+        data = SUNRGBDMeta_new(i);
+        disp(['Labeling bounding boxes for image ', num2str(i)]);
 
-    Ngt = size(data.groundtruth2DBB, 2);
-    Npr = size(boxes, 1);
+        % load proposal file
+        load( fullfile( config.SUNRGBD_common, proplist{i} ) );
 
-    I_o_u = zeros(Npr, Ngt);
+        Ngt = size(data.groundtruth2DBB, 2);
+        Npr = size(boxes, 1);
 
-    attr_depth = -1000*ones(Npr, 1);
-    attr_angle = -1000*ones(Npr, 1);
-    prop_label = cell(Npr, 1);
+        I_o_u = zeros(Npr, Ngt);
 
-    for p =1:Npr
-        for k =1:Ngt
+        attr_depth = -1000*ones(Npr, 1);
+        attr_angle = -1000*ones(Npr, 1);
+        prop_label = cell(Npr, 1);
 
-            bb1 = boxes(p, :);
-            bb2 = data.groundtruth2DBB(k).gtBb2D;
+        for p =1:Npr
+            for k =1:Ngt
 
-            if(~isempty(bb2))
+                bb1 = boxes(p, :);
+                bb2 = data.groundtruth2DBB(k).gtBb2D;
 
-                bb2(3:4) = bb2(3:4) + bb2(1:2);
+                if(~isempty(bb2))
 
-                I_o_u(p, k) = IoU(bb1, bb2);
+                    bb2(3:4) = bb2(3:4) + bb2(1:2);
+
+                    I_o_u(p, k) = IoU(bb1, bb2);
+
+                end
+
+                clear bb*
 
             end
-
-            clear bb*
-
         end
+
+        max_ovl = max(I_o_u, [], 2);
+
+        max_row = find(max_ovl >= 0.5);
+
+        for j = 1:size(max_row, 1)
+
+            p = max_row(j, 1);
+
+            [~, gtb] = max(I_o_u(p, :));
+
+            attr_depth(p) = data.groundtruth3DBB(gtb).centroid(2);
+            attr_angle(p) = acos(data.groundtruth3DBB(gtb).basis(1));
+            prop_label{p} = data.groundtruth3DBB(gtb).classname;
+        end
+
+        AttrLabels(i).attr_depth = attr_depth;
+        AttrLabels(i).attr_angle = attr_angle;
+        AttrLabels(i).prop_label = prop_label;
+
+        clear I_o_u max_* attr_* prop_* boxes data;
+
     end
-
-    max_ovl = max(I_o_u, [], 2);
-
-    max_row = find(max_ovl >= 0.5);
-
-    for j = 1:size(max_row, 1)
-
-        p = max_row(j, 1);
-
-        [~, gtb] = max(I_o_u(p, :));
-
-        attr_depth(p) = data.groundtruth3DBB(gtb).centroid(2);
-        attr_angle(p) = acos(data.groundtruth3DBB(gtb).basis(1));
-        prop_label{p} = data.groundtruth3DBB(gtb).classname;
-    end
-
-    AttrLabels(i).attr_depth = attr_depth;
-    AttrLabels(i).attr_angle = attr_angle;
-    AttrLabels(i).prop_label = prop_label;
-
-    clear I_o_u max_* attr_* prop_* boxes data;
 
 end
-
+    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Collect CNN features, scores and attr labels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -186,28 +214,29 @@ det_Classes = {
     'toilet'};
 
 
-for i=1:length(SUNRGBDMeta_new)
-
-    % load CNN features + scores
-    load( fullfile( ...
-        config.SUNRGBD_dir, ...
-        'images', ...
-        sprintf('image_%.5d_bbox_features.mat', i) ) );
-
-    % saves CNN features and scores in AttrLabels
-    AttrLabels(i).CNN_scores = CNN_scores;
-    AttrLabels(i).CNN_feature = CNN_feature;
-
-    clear CNN_*
-
-    % load Selective Search proposals for i-th image
-    load( proplist{i} );
-
-    % save Selective Search proposals in AttrLabels
-    AttrLabels(i).boxes = boxes;
-
-    clear boxes;
-
+if run_feature_collection
+    
+    for i=1:length(SUNRGBDMeta_new)
+        
+%         load( fullfile( ...
+%             config.SUNRGBD_common, ...
+%             sprintf('image_%.5d_bbox_features.mat', i) ) );
+%         
+%         AttrLabels(i).CNN_scores = CNN_scores;
+%         AttrLabels(i).CNN_feature = CNN_feature;
+        
+%        clear CNN_*
+        
+        load( fullfile( config.SUNRGBD_common, proplist{i} ) );
+        
+        % save Selective Search proposals in AttrLabels
+        AttrLabels(i).boxes = boxes;
+        
+        clear boxes;
+        
+    end
+    
+    save( fullfile( config.SUNRGBD_common, 'AttrLabels' ), 'AttrLabels' );
+    
 end
-
-save( fullfile( config.SUNRGBD_dir, 'images', 'AttrLabels' ), 'AttrLabels' );
+    
