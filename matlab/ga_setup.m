@@ -4,6 +4,7 @@ config = [];
 if nargin < 1
     disp('MacBook_rkwitt');
     disp('eisbaer');
+    disp('grassmann');
     return;
 end
 
@@ -24,5 +25,11 @@ if strcmp(sysType, 'eisbaer') % GPU server
 
   	config = load('config_eisbaer');
 		eval('config = config.config_eisbaer');
+
+end
+if strcmp(sysType, 'grassmann') % rkwitt iMac
+
+  	config = load('config_grassmann');
+		eval('config = config.config_grassmann');
 
 end
