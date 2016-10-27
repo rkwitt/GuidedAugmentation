@@ -1,5 +1,13 @@
 function config = ga_setup(sysType)
 
+config = [];
+if nargin < 1
+    disp('MacBook_rkwitt');
+    disp('eisbaer');
+    return;
+end
+
+
 % Add Selective Search paths
 addpath(fullfile(pwd, 'selective_search'));
 addpath(fullfile(pwd, 'selective_search/Dependencies'));
