@@ -1,4 +1,4 @@
-function [info,stat,keys] = overlap_statistics( data )
+function [info,stat,keys] = overlap_statistics( MetaData )
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Object statistics for Selective Search bounding boxes overlapping with
@@ -7,15 +7,15 @@ function [info,stat,keys] = overlap_statistics( data )
 
 NO_VAL = -1000;
 
-Nimages = length( data );
+Nimages = length( MetaData );
 
 info = containers.Map;
 
 for i=1:Nimages
     
-    depths = data(i).attr_depth;
-    angles = data(i).attr_angle;
-    labels = data(i).prop_label;
+    depths = MetaData(i).attr_depth;
+    angles = MetaData(i).attr_angle;
+    labels = MetaData(i).prop_label;
     
     pos_depths = find( depths ~= NO_VAL );
     pos_angles = find( angles ~= NO_VAL );

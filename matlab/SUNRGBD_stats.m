@@ -1,4 +1,4 @@
-function [info, stat] = SUNRGBD_stats( MetaData_withFeatures, selection )
+function stat = SUNRGBD_stats( DataMatrix, DataMatrix_img2idx, selection )
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Compute statistics of detections per object and min/max values for the
@@ -8,77 +8,57 @@ function [info, stat] = SUNRGBD_stats( MetaData_withFeatures, selection )
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+OBJ_SCORE_START = 4100;
+OBJ_DEPTH = 4098;
+OBJ_ANGLE = 4099;
+
 debug = 1;
 
 load( 'object_classes' ); % object classes for SUNRGBD object detector
 
-Nimages = length( selection );
+Nobjects = length( object_classes ); %#ok<USENS>
 
-NO_VAL = -1000;
+image_indices = DataMatrix_img2idx(:,1);
+    
+[idx, ~, ~] = intersect( image_indices, selection );
 
-info = containers.Map;
-
-for i=1:Nimages
-     
-    disp(i);
-    idx = selection( i ); % image index
+use = [];
+for j=1:length( idx )
     
-    % get CNN scores for image selection( i )
-    scores = MetaData_withFeatures( idx ).CNN_scores;
+    idx_beg = DataMatrix_img2idx( idx( j ), 2 );
+    idx_end = idx_beg + DataMatrix_img2idx( idx( j ), 3 ) - 1;
     
-    scores(:,1:2) = 0; % __background__ + others
-    
-    % discard features where we have no depth/pose
-    pos = find( MetaData_withFeatures( idx ).attr_depth ~= NO_VAL );
-    
-    [m,n] = find(scores>0.5);
-    
-    % m ... index of the m-th detected object
-    % n ... index of the n-th detected object class
-    for k=1:length(m)
-        
-        object = object_classes{ n(k) }; %#ok<USENS>
-       
-        if ~isKey( info, object )
-            
-            prop.num = 1;
-            prop.depths = [];
-            prop.angles = [];
-            info( object ) = prop;
-            
-        end
-    
-        tmp_info = info( object );
-        
-        tmp_info.angles = [tmp_info.angles MetaData_withFeatures( idx ).attr_angle( pos( m(k) ) )];
-        tmp_info.depths = [tmp_info.depths MetaData_withFeatures( idx ).attr_depth( pos( m(k) ) )];
-        tmp_info.num = tmp_info.num + 1;
-        info(object) = tmp_info;
-        
-    end
+    r = idx_beg:idx_end;
+    use = [use; r(:)]; %#ok<AGROW>
     
 end
 
-keys = info.keys;
+stat = zeros( Nobjects, 5 );
 
-assert( length( keys ) == length( object_classes) - 2 );
-
-stat = zeros( length( keys ), 5 );
-
-cnt = 1;
-for i=3:length( object_classes )
-
-    key = object_classes{i};
-    stat(cnt,1) = info( key ).num;
-    stat(cnt,2) = min( info( key ).depths );
-    stat(cnt,3) = max( info( key ).depths );
-    stat(cnt,4) = min( info( key ).angles );
-    stat(cnt,5) = max( info( key ).angles );
+for k=1:Nobjects
+   
+    disp( object_classes{ k } ); 
+   
+    object_data = DataMatrix(use,:);
     
-    cnt = cnt + 1;
-
-end
-
+    object_scores = object_data(:, OBJ_SCORE_START + k - 1);
+    
+    pos =  object_scores > 0.5 ;
+   
+    object_data = object_data( pos, :);
+    
+    object_depth = object_data(:, OBJ_DEPTH);
+    object_angle = object_data(:, OBJ_ANGLE);
+    
+    stat(k, 1) = size( object_data, 1 );
+    stat(k, 2) =  min( object_depth );
+    stat(k, 3) =  max( object_depth );
+    stat(k, 4) =  min( object_angle );
+    stat(k, 5) =  max( object_angle );
+    
+end    
+    
+   
 if debug 
 
     for i=1:size(stat,1);
@@ -89,12 +69,8 @@ if debug
           stat( i, 3), ...
           stat( i, 4), ...
           stat( i, 5), ...
-          object_classes{ i+2 });
+          object_classes{ i });
 
     end
 
 end
-
-
-
-

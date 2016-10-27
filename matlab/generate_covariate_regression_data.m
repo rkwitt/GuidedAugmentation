@@ -1,4 +1,4 @@
-function generate_covariate_regression_data( DataMatrix, config, img2idx, target_idx, out_file )
+function generate_covariate_regression_data( config, DataMatrix, DataMatrix_img2idx, selection, out_file )
 
 debug = 1;
 
@@ -12,28 +12,31 @@ load( 'object_classes' ); % object classes for SUNRGBD object detector
 
 Nobjects = length( object_classes ); %#ok<USENS>
 
-% since the first column of img2idx holds the image number, we can simply
-% intersect with the target_idx (e.g., training indices) and only get those
-% indices that we actually want. Columns 2-3 then hold the position where
-% the actual features for a particular image start and how many of them we
-% have.
-[idx, ~, ~] = intersect( img2idx(:,1), target_idx );
+[idx, ~, ~] = intersect( DataMatrix_img2idx(:,1), selection );
 
 use = [];
-for j=1:length(idx)
+for j=1:length( idx )
     
-    r = img2idx( idx( j ), 2 ):img2idx( idx( j ), 2 ) + img2idx( idx( j ), 3 ) - 1;
+    idx_beg = DataMatrix_img2idx( idx( j ), 2 );
+    idx_end = idx_beg + DataMatrix_img2idx( idx( j ), 3 ) - 1;
+    
+    r = idx_beg:idx_end;
     use = [use; r(:)]; %#ok<AGROW>
     
 end
 
-% prune DataMatrix to only those entries that are relevant for the desired
-% images, specified via target_idx.
-Y = DataMatrix(use,:);
+DataMatrix = DataMatrix(use,:);
 
-for i=3:Nobjects % ignore __background__ + others
-   
-    object = object_classes{i};
+for i=1:Nobjects
+    
+    if strcmp( object_classes{ i }, '__background__' )
+        continue;
+    end
+    if strcmp( object_classes{ i }, 'others' )
+        continue;
+    end
+    
+    object = object_classes{ i };
     
     object_dir = fullfile( config.SUNRGBD_common, 'objects', object );
     
@@ -41,15 +44,14 @@ for i=3:Nobjects % ignore __background__ + others
         mkdir( object_dir );
     end
     
-    object_idx = OBJ_SCORE_START + i - 1;
+    object_score = DataMatrix(:, OBJ_SCORE_START + i - 1);
     
-    object_score = Y(:,object_idx);
+    pos =  object_score > 0.5 ;
     
-    % take features if detection score for that object > 0.5
-    pos = find( object_score > 0.5 );
+    object_data = DataMatrix( pos, :);
     
-    object_X = Y(pos, OBJ_FC7_BEG:OBJ_FC7_END );
-    object_Y = Y(pos, [OBJ_DEPTH OBJ_ANGLE]);
+    object_X = object_data(:, OBJ_FC7_BEG:OBJ_FC7_END );
+    object_Y = object_data(:, [OBJ_DEPTH OBJ_ANGLE]);
     
     object_X_file = fullfile( object_dir, out_file );
         
@@ -58,7 +60,8 @@ for i=3:Nobjects % ignore __background__ + others
     if debug
         
         fprintf('%.5d x %.5d | %s\n', ...
-            size(object_X,1), size(object_X,2), object);
+            size( object_X, 1 ), ...
+            size( object_X, 2 ), object);
         
     end
     

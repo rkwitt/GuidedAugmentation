@@ -29,10 +29,7 @@ end
     
 DataMatrix = zeros( Ndetections, 4096 + 1 + 2 + length( object_classes ) );
 DataMatrix = single( DataMatrix );
-
-% img2idx stores the position in the DataMatrix where the features for each
-% object are stored.
-img2idx = zeros( Nimages, 3 );
+DataMatrix_img2idx = zeros( Nimages, 3 );
  
 cnt = 1;
 for i=1:Nimages
@@ -58,7 +55,7 @@ for i=1:Nimages
    DataMatrix(cnt:cnt+N-1, 4099)                 = angles( pos )';                        % Angles
    DataMatrix(cnt:cnt+N-1, 4100:4100+Nobjects-1) = MetaData_withFeatures(i).CNN_scores;   % Scores
    
-   img2idx(i,1:3) = [i cnt N];
+   DataMatrix_img2idx(i,1:3) = [i cnt N];
    
    cnt = cnt + N;
     
@@ -66,7 +63,7 @@ end
 
 DataMatrix = single( DataMatrix );
 save( fullfile( config.SUNRGBD_common, 'DataMatrix.mat' ), 'DataMatrix', '-v7.3' );
-save( fullfile( config.SUNRGBD_common, 'img2idx.mat' ), 'img2idx', '-v7.3');
+save( fullfile( config.SUNRGBD_common, 'DataMatrix_img2idx.mat' ), 'img2idx', '-v7.3');
 
 
 
