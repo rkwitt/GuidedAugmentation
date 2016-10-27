@@ -1,3 +1,4 @@
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Copy all SUNRGBD images to some common directory
 %
@@ -121,9 +122,9 @@ end
 
 if run_labeling 
 
-    disp('Labeling bounding boxes with attributes');
+    disp( 'Labeling bounding boxes with attributes' );
 
-    AttrLabels = {};
+    MetaData = {};
 
     for i=1:NImages
 
@@ -176,9 +177,9 @@ if run_labeling
             prop_label{p} = data.groundtruth3DBB(gtb).classname;
         end
 
-        AttrLabels(i).attr_depth = attr_depth;
-        AttrLabels(i).attr_angle = attr_angle;
-        AttrLabels(i).prop_label = prop_label;
+        MetaData(i).attr_depth = attr_depth;
+        MetaData(i).attr_angle = attr_angle;
+        MetaData(i).prop_label = prop_label;
 
         clear I_o_u max_* attr_* prop_* boxes data;
 
@@ -218,25 +219,15 @@ if run_feature_collection
     
     for i=1:length(SUNRGBDMeta_new)
         
-%         load( fullfile( ...
-%             config.SUNRGBD_common, ...
-%             sprintf('image_%.5d_bbox_features.mat', i) ) );
-%         
-%         AttrLabels(i).CNN_scores = CNN_scores;
-%         AttrLabels(i).CNN_feature = CNN_feature;
-        
-%        clear CNN_*
-        
         load( fullfile( config.SUNRGBD_common, proplist{i} ) );
         
-        % save Selective Search proposals in AttrLabels
-        AttrLabels(i).boxes = boxes;
+        MetaData(i).boxes = boxes;
         
         clear boxes;
         
     end
     
-    save( fullfile( config.SUNRGBD_common, 'AttrLabels' ), 'AttrLabels' );
+    save( fullfile( config.SUNRGBD_common, 'MetaData' ), 'MetaData' );
     
 end
     
