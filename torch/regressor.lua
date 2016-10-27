@@ -5,10 +5,11 @@ require 'hdf5'
 -- cmdline parsing
 local cmd = torch.CmdLine()
 cmd:option('-logFile', '/tmp/regressor.log', 'Logfile')
+cmd:option('-evaluationFile', '/tmp/evaluation.hdf5', 'File with predictions + ground truth')
 cmd:option('-trainFile', '/tmp/train.hdf5', '(Input) HDF5 training data file')
 cmd:option('-testFile', '/tmp/test.hdf5', '(Input) HDF5 testing data file')
-cmd:option('-predictionFile', '/tmp/prediction.hdf5', '(Output) HDF5 test data predictions')
 cmd:option('-test', false, 'Run on test file')
+cmd:option('-target', 1, '1=Depth, 2=Pose')
 cmd:option('-learningRate', 0.001, 'Learning rate')
 cmd:option('-epochs', 10, 'Training epochs')
 cmd:option('-batchSize', 300, 'Batchsize')
@@ -27,8 +28,9 @@ logger = optim.Logger(opt.logFile)
 
 -- load training data
 local fid = hdf5.open(opt.trainFile, 'r')
-local X_trn = fid:read('X_trn'):all():transpose(1,2)
-local y_trn = fid:read('y_trn'):all()
+local X_trn = fid:read('X'):all():transpose(1,2)
+local y_trn = fid:read('Y'):all():transpose(1,2)
+y_trn = y_trn[{{}, opt.target}]
 fid:close()
 
 local N = X_trn:size(1) -- nr. of data points
@@ -99,10 +101,11 @@ end
 if opt.test then
   -- load testing data
   local fid = hdf5.open(opt.testFile, 'r')
-  local X_tst = fid:read('X_tst'):all():transpose(1,2)
-  local y_tst = fid:read('y_tst'):all()
+  local X_tst = fid:read('X'):all():transpose(1,2)
+  local y_tst = fid:read('Y'):all():transpose(1,2)
+	y_tst = y_tst[{{}, opt.target}]
   fid:close()
-  
+
   if opt.cuda then
   	X_tst = X_tst:cuda()
   	y_tst = y_tst:cuda()
@@ -115,7 +118,7 @@ if opt.test then
   y_err = criterion:forward(y_hat, y_tst)
   print('MSE [m]: '..y_err)
 
-  fid = hdf5.open('/tmp/debug.hdf5', 'w')
+  fid = hdf5.open(opt.evaluationFile, 'w')
   fid:write('/y_hat', y_hat:float())
   fid:write('/y_tst', y_tst:float())
   fid:close()
