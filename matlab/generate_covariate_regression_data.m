@@ -2,21 +2,24 @@ function generate_covariate_regression_data( config, DataMatrix, DataMatrix_img2
 
 debug = 1;
 
-OBJ_SCORE_START   = 4100; % column in DataMatrix where detection scores start
-OBJ_FC7_BEG       = 1;    % column where FC7 feature starts
-OBJ_FC7_END       = 4096; % column where FC7 feature ends
-OBJ_DEPTH         = 4098; % column where depth information is stored
-OBJ_ANGLE         = 4099; % column where angle information is stored
+OBJ_SCORE_START   = 4100;  % column in DataMatrix where detection scores start
+FC7_FEATURES      = 1:4096;% columns of FC7 features
+OBJ_DEPTH         = 4098;  % column where depth information is stored
+OBJ_ANGLE         = 4099;  % column where angle information is stored
 
-load( 'object_classes' ); % object classes for SUNRGBD object detector
+load( 'object_classes' );
 
 Nobjects = length( object_classes ); %#ok<USENS>
 
+% Intersect indices of all images with selection -> only the images that
+% are in both sets remain. 
 [idx, ~, ~] = intersect( DataMatrix_img2idx(:,1), selection );
 
 use = [];
 for j=1:length( idx )
     
+    % Get interval of indices into DataMatrix where the features for the
+    % image with index idx( j ) reside.
     idx_beg = DataMatrix_img2idx( idx( j ), 2 );
     idx_end = idx_beg + DataMatrix_img2idx( idx( j ), 3 ) - 1;
     
@@ -50,12 +53,12 @@ for i=1:Nobjects
     
     object_data = DataMatrix( pos, :);
     
-    object_X = object_data(:, OBJ_FC7_BEG:OBJ_FC7_END );
+    object_X = object_data(:, FC7_FEATURES);
     object_Y = object_data(:, [OBJ_DEPTH OBJ_ANGLE]);
     
     object_X_file = fullfile( object_dir, out_file );
         
-    hdf5write( object_X_file, 'X', object_X, 'Y', object_Y );    
+    hdf5write( object_X_file, 'X_trn', object_X, 'Y_trn', object_Y );    
     
     if debug
         
