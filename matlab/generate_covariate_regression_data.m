@@ -55,7 +55,7 @@ for i=1:Nobjects
     
     object_X_file = fullfile( object_dir, out_file );
         
-    hdf5write( object_X_file, 'X', object_X, 'Y', object_Y );    
+    hdf5write( object_X_file, 'X_trn', object_X, 'Y_trn', object_Y );    
     
     if debug
         

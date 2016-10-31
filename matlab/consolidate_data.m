@@ -62,8 +62,8 @@ for i=1:Nimages
 end
 
 DataMatrix = single( DataMatrix );
-save( fullfile( config.SUNRGBD_common, 'DataMatrix.mat' ), 'DataMatrix', '-v7.3' );
-save( fullfile( config.SUNRGBD_common, 'DataMatrix_img2idx.mat' ), 'img2idx', '-v7.3');
+save( fullfile( '/tmp/', 'DataMatrix.mat' ), 'DataMatrix', '-v7.3' );
+save( fullfile( '/tmp/', 'DataMatrix_img2idx.mat' ), 'DataMatrix_img2idx', '-v7.3');
 
 
 
