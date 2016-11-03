@@ -1,4 +1,4 @@
-function generate_covariate_regression_data( config, DataMatrix, DataMatrix_img2idx, selection, out_file, istrain )
+function generate_covariate_regression_data( config, DataMatrix, DataMatrix_img2idx, selection, out_file )
 
 debug = 1;
 
@@ -58,11 +58,7 @@ for i=1:Nobjects
     
     object_X_file = fullfile( object_dir, out_file );
     
-    if istrain
-        hdf5write( object_X_file, 'X_trn', object_X, 'Y_trn', object_Y );    
-    else
-        hdf5write( object_X_file, 'X_tst', object_X, 'Y_tst', object_Y ); 
-    end
+    hdf5write( object_X_file, 'X', object_X, 'Y', object_Y );    
     
     if debug
         
