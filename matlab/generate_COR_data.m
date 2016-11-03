@@ -1,4 +1,4 @@
-function generate_covariate_regression_data( config, DataMatrix, DataMatrix_img2idx, selection, out_file )
+function generate_COR_data( config, DataMatrix, DataMatrix_img2idx, selection, out_file )
 
 debug = 1;
 
@@ -57,8 +57,8 @@ for i=1:Nobjects
     object_Y = object_data(:, [OBJ_DEPTH OBJ_ANGLE]);
     
     object_X_file = fullfile( object_dir, out_file );
-        
-    hdf5write( object_X_file, 'X_trn', object_X, 'Y_trn', object_Y );    
+    
+    hdf5write( object_X_file, 'X', object_X, 'Y', object_Y );    
     
     if debug
         

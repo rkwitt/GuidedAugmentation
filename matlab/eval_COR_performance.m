@@ -1,8 +1,8 @@
-function eval_covariate_regression_performance( config )
+function eval_COR_performance( config )
 
 load( 'object_classes' );
 
-Nobjects = length( object_classes );
+Nobjects = length( object_classes ); %#ok<USENS>
 
 for i=3:Nobjects % skip __background__ + others
    
@@ -12,11 +12,11 @@ for i=3:Nobjects % skip __background__ + others
         config.SUNRGBD_common, ...
         'objects', ...
         object, ...
-        'evaluation.hdf5' );
+        'predictions.hdf5' );
     
     
-    y_hat = hdf5read( eval_file, 'y_hat' );
-    y_tst = hdf5read( eval_file, 'y_tst' );
+    y_hat = hdf5read( eval_file, 'Y_hat' );
+    y_tst = hdf5read( eval_file, 'Y' );
     
     y_hat = y_hat(:);
     y_tst = y_tst(:);

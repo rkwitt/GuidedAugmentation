@@ -1,4 +1,4 @@
-function E = binbynum(x, delta, overlap)
+function E = binbystep(x, delta, overlap)
 
 max_x = max(x);
 
