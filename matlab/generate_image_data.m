@@ -1,6 +1,6 @@
 function generate_image_data( config, DataMatrix, DataMatrix_img2idx, selection )
 
-OBJ_SCORE_START   = 4100;
+OBJ_SCORE_START   = 4100;  % column where RCNN object scores start
 OBJ_DEPTH         = 4098;  % column where depth information is stored
 OBJ_ANGLE         = 4099;  % column where angle information is stored
 
@@ -30,7 +30,7 @@ for s=1:length( selection )
     p1 = v == 2; % others
     px = logical( p0 + p1 );
     
-    v( px ) = []; % column IDs
+    v( px ) = []; % col IDs
     u( px ) = []; % row IDs
     
     X = image_data(u, 1:4096);

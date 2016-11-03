@@ -1,4 +1,4 @@
-function generate_covariate_regression_data( config, DataMatrix, DataMatrix_img2idx, selection, out_file )
+function generate_COR_data( config, DataMatrix, DataMatrix_img2idx, selection, out_file )
 
 debug = 1;
 

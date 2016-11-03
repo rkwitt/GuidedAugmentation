@@ -1,4 +1,4 @@
-function eval_covariate_regression_performance( config )
+function eval_COR_performance( config )
 
 load( 'object_classes' );
 

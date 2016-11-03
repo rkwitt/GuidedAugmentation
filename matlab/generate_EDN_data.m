@@ -1,4 +1,7 @@
-function generate_feature_regression_data( config, DataMatrix, DataMatrix_img2idx, selection, gamma, Nsplits, seed )
+function generate_EDN_data( config, DataMatrix, DataMatrix_img2idx, selection, gamma, Nsplits, seed )
+%
+% Generate data for EDN
+
 
 rng( seed );
 
