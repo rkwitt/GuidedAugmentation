@@ -11,7 +11,6 @@ cmd:option('-dataFile', '/tmp/data.hdf5', '(Input) HDF5 source data file')
 cmd:option('-modelFile', 'torch/autoencoder.lua')
 cmd:option('-saveModel', '/tmp/autoencoder.hdf5', '(Output) Save model to file')
 cmd:option('-learningRate', 0.001, 'Learning rate')
-cmd:option('-target', 4, 'Target covariate')
 cmd:option('-epochs', 10, 'Training epochs')
 cmd:option('-batchSize', 300, 'Batchsize')
 cmd:option('-cuda', false, 'Use CUDA')
@@ -28,7 +27,7 @@ logger = optim.Logger(opt.logFile)
 
 -- load some training/testing data
 local fid = hdf5.open(opt.dataFile, 'r')
-local src = fid:read('X_trn'):all():transpose(1,2)
+local src = fid:read('X'):all():transpose(1,2)
 fid:close()
 
 local N = src:size(1) -- nr. of data points

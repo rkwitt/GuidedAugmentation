@@ -1,0 +1,21 @@
+__background__
+others
+bathtub
+bed
+bookshelf
+box
+chair
+counter
+desk
+door
+dresser
+garbage bin
+lamp
+monitor
+night stand
+pillow
+sink
+sofa
+table
+tv
+toilet
