@@ -45,7 +45,7 @@ end
 
 model:evaluate()
 local Y_hat_EDNCOR = model:forward(X)
-print(torch.mean(Y_hat_EDNCOR))
+--print(torch.mean(Y_hat_EDNCOR))
  
 modelEDN:evaluate()
 local X_hat = modelEDN:forward(X)

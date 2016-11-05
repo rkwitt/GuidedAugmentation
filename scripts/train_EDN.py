@@ -5,11 +5,11 @@ Train encoder-decoder network (EDN).
 import subprocess
 import tempfile
 import numpy as np
+import yaml
 import h5py
 import sys
 import os
 
-from meta import meta
 
 SUNRGBD_common  = '/scratch2/rkwitt/Mount/images/objects'
 
@@ -20,117 +20,117 @@ TEST_EDN        = '/home/pma/rkwitt/GuidedAugmentation/torch/test_EDN.lua'
 MODEL_DEF       = '/home/pma/rkwitt/GuidedAugmentation/torch/models/ae.lua'
 
 
-def read_file( file_name ):
-    """Read line-by-line from file"""
-    data = None
-    with open( file_name ) as fid:
-        data = fid.readlines()
+def train_EDN_object(info):
 
-    data = [l.rstrip() for l in data]
-    return data
+    for i, obj in enumerate(info):
 
+        obj_path = os.path.join( SUNRGBD_common, obj )
+        
+        pretrain_data  = os.path.join(obj_path, 'train.hdf5')
+        pretrain_model = os.path.join(obj_path, info[obj]['EDN_pre'])
 
-def parse_entry( line ):
-    """Parse one line into meta information.
-
-    Format per line:
-
-        obj_name, lo, hi, cv0_file, cv1_file, ..., cvN_file, train_file
-
-    """
-    meta_obj = meta()
-
-    parts = line.split( ',' )
-
-    meta_obj.object_name = parts[0]
-    meta_obj.covariate_lo, meta_obj.covariate_hi = float( parts[1] ), float( parts[2] )
-    [meta_obj.feature_regression_cv_files.append( x ) for x in parts[3:-1]]
-    meta_obj.feature_regression_train_file = parts[-1]
-
-    return meta_obj
-
-
-def set_covariate_targets( meta_objs, range=np.arange(1, 5, 0.5)):
-    """Set covariate targets based on covariate data"""
-
-    for meta_obj in meta_objs:
-        for r in range:
-            if r >= meta_obj.covariate_lo and r <= meta_obj.covariate_hi:
-                continue
-            meta_obj.covariate_targets.append( r )
-
-
-def trainer( meta_objs, pretrain=False, do_train=False, do_eval=False ):
-
-    for i, meta_obj in enumerate( meta_objs ):
-  
-        obj_path = os.path.join( SUNRGBD_common, meta_obj.object_name )
-
-        meta_obj.feature_regression_pretrained_model = os.path.join(obj_path, 'model_pretrain.t7')
-
-        if pretrain and i==0:
-
+        if not os.path.exists(pretrain_model):
             cmd = [TORCH,
                 TRAIN_PRE,
-                '-dataFile',  os.path.join(obj_path, 'train.hdf5'),
-                '-saveModel', meta_obj.feature_regression_pretrained_model,
+                '-dataFile',  pretrain_data,
+                '-saveModel', pretrain_model,
                 '-batchSize', '64',
                 '-epochs', '20',
                 '-modelFile', MODEL_DEF,
                 '-cuda']  
             print cmd
-            subprocess.call( cmd )       
-    
-        # require pretrained model at this point
-        found_pretrained_model =  os.path.exists( meta_obj.feature_regression_pretrained_model )
-        assert found_pretrained_model == True, 'Pretrained model not found!' 
-            
-        for t, target in enumerate( meta_obj.covariate_targets ):
+            subprocess.call( cmd )   
 
-            if do_train:
+        intervals = info[obj]['intervals']
+        
+        for k, interval in enumerate(intervals):
 
-                tmp_name = next(tempfile._get_candidate_names())
-                feature_regressor_file = "model_" + tmp_name + '.t7'
-                meta_obj.feature_regression_trained_regressors.append( feature_regressor_file )
-                
+            models = []
+            EDN_targets = info[obj]['EDN_targets'][k]
+
+            for target in EDN_targets:
+
+                EDN_model = "EDN_" + \
+                    os.path.splitext(info[obj]['EDN_train_files'][k])[0] + \
+                    "_" + str(target) + ".t7"
+                models.append(EDN_model)
+
                 cmd = [TORCH,
                   TRAIN_EDN,
-                  '-dataFile',              os.path.join( obj_path, meta_obj.feature_regression_train_file ),
-                  '-modelEDN',              os.path.join( obj_path, 'model_pretrain.t7' ),
-                  '-modelCOR',              os.path.join( obj_path, 'modelCOR.t7' ),
-                  '-saveModel',             os.path.join( obj_path, feature_regressor_file ),
+                  '-dataFile',              os.path.join( obj_path, info[obj]['EDN_train_files'][k] ),
+                  '-modelEDN',              os.path.join( obj_path, info[obj]['EDN_pre']),
+                  '-modelCOR',              os.path.join( obj_path, info[obj]['COR_object_model'] ),
+                  '-saveModel',             os.path.join( obj_path, EDN_model),
                   '-target',                str( target ), 
                   '-cuda',
+                  '-epochs',                '20',
                   '-batchSize',             '64']
                 print cmd
                 subprocess.call( cmd )
-                
-            if do_eval:
 
-                for n, cv_feature_file in enumerate(meta_obj.feature_regression_cv_files):
+            info[obj]['EDN_object_models'].append(tuple(models))
+            
+    return info
+
+
+def eval_EDN_object(info):
+
+    # iterate over all object names in info
+    for i, obj in enumerate(info):
+
+        obj_path = os.path.join( SUNRGBD_common, obj )
+        
+        # pretrain
+        pretrain_data  = os.path.join(obj_path, 'train.hdf5')
+        pretrain_model = os.path.join(obj_path, info[obj]['EDN_pre'])
+
+        if not os.path.exists(pretrain_model):
+            cmd = [TORCH,
+                TRAIN_PRE,
+                '-dataFile',  pretrain_data,
+                '-saveModel', pretrain_model,
+                '-batchSize', '64',
+                '-epochs', '20',
+                '-modelFile', MODEL_DEF,
+                '-cuda']  
+            print cmd
+            subprocess.call( cmd )   
+
+        # get all evaluation intervals, i.e., tuples (start,end), ....
+        intervals = info[obj]['intervals']
+        
+        for k, interval in enumerate(intervals):
+
+            # get EDN covariate targets for k-th interval
+            EDN_targets = info[obj]['EDN_targets'][k]
+            for target in EDN_targets:
+
+                # iterate over all CV folds for k-th interval and current EDN covariate target
+                cv_files = info[obj]['EDN_cv_files'][k]        
+                for n, cv_file in enumerate(cv_files):
 
                     tmp_name = next(tempfile._get_candidate_names())
-                    tmp_EDNCOR = "model" + tmp_name + '.t7'
-
+                    EDN_model = "model_" + tmp_name + '.t7'
+                    
                     cmd = [TORCH,
-                        TRAIN_EDN,
-                        '-dataFile',              os.path.join( obj_path, cv_feature_file + '_train.hdf5' ),
-                        '-modelEDN',              os.path.join( obj_path, 'model_pretrain.t7' ),
-                        '-modelCOR',              os.path.join( obj_path, 'modelCOR.t7' ),
-                        '-saveModel',             os.path.join( '/tmp', tmp_EDNCOR ),
-                        '-target',                str( target ), 
-                        '-cuda',
-                        '-epochs',                '20',
-                        '-batchSize',             '64']
+                      TRAIN_EDN,
+                      '-dataFile',              os.path.join( obj_path, cv_file + '_train.hdf5' ),
+                      '-modelEDN',              os.path.join( obj_path, info[obj]['EDN_pre']),
+                      '-modelCOR',              os.path.join( obj_path, info[obj]['COR_object_model'] ),
+                      '-saveModel',             os.path.join( '/tmp', EDN_model),
+                      '-target',                str( target ), 
+                      '-cuda',
+                      '-epochs',                '20',
+                      '-batchSize',             '64']
                     print cmd
                     subprocess.call( cmd )
 
-                    prediction_file = os.path.splitext( cv_feature_file )[0] + '_test_' + str( target ) + '_prediction.hdf5'
+                    prediction_file = os.path.splitext( cv_file )[0] + '_test_' + str( target ) + '_prediction.hdf5'
 
                     cmd = [TORCH,
                         TEST_EDN,
-                        '-dataFile',              os.path.join( obj_path, cv_feature_file + '_test.hdf5' ),
-                        '-model',                 os.path.join( '/tmp', tmp_EDNCOR ),
+                        '-dataFile',              os.path.join( obj_path, cv_file + '_test.hdf5' ),
+                        '-model',                 os.path.join( '/tmp', EDN_model ),
                         '-outputFile',            os.path.join( obj_path, prediction_file ) ]
                     print cmd
                     subprocess.call( cmd )
@@ -138,41 +138,37 @@ def trainer( meta_objs, pretrain=False, do_train=False, do_eval=False ):
                     with h5py.File( os.path.join( obj_path, prediction_file ),'r') as hf:
                         Y_hat_EDNCOR = np.asarray( hf.get('Y_hat_EDNCOR') )
 
-                        print '--- Feature regression ---'
-                        print target, Y_hat_EDNCOR.mean()
-                        print meta_obj.covariate_lo, meta_obj.covariate_hi
-                        print '--- Feature regression ---'
+                        print "{:10s} | {:4f} | {:4f} | [{:2f} {:2f}]".format(
+                            obj,
+                            target,
+                            np.mean(Y_hat_EDNCOR),
+                            info[obj]['intervals'][k][0],
+                            info[obj]['intervals'][k][1],
+                            )
+                    os.remove( os.path.join( '/tmp', EDN_model ) )
                     
-                    os.remove( os.path.join( '/tmp', tmp_EDNCOR ) )
+
+def train_EDN_agnostic(info):
+    pass
+
 
 def main():
 
-    data = {}
+    # load info 
+    f = open(sys.argv[1])
+    info = yaml.load(f)
+    f.close()
 
-    # read file and process line-by-line
-    for line in read_file( sys.argv[1] ):
+    info = train_EDN_object(info)
+    
+    f = open(sys.argv[2],'w')
+    yaml.dump(info, f)
+    f.close()
 
-        # parse entry into meta object
-        meta_obj = parse_entry( line )
-
-        obj_name = meta_obj.object_name
-
-        if not obj_name in data:
-            data[obj_name] = []
-
-        data[obj_name].append( meta_obj )
-
-    for obj_name in data:
-        set_covariate_targets( data[obj_name] )
-
-    for obj_name in data:
-        trainer( data[obj_name], pretrain=True, do_train=True, do_eval=False )
-
-    # CAUTION: if do_train==False and do_eval==True, uncomment the last lines not
-    # to overwrite old file with empty stuff.
-    import pickle
-    pickle.dump( data, open( sys.argv[2], 'w' ) )
-
+    # DEBUG
+    #eval_EDN_object(info)
+    
+    
 
 if __name__ == "__main__":
     main()
