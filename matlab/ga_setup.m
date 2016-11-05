@@ -18,18 +18,18 @@ addpath(fullfile(pwd, 'selective_search/Dependencies/FelzenSegment/'));
 % Load system-specific configuration
 if strcmp(sysType, 'MacBook_rkwitt') % rkwitt laptop
 
-    config = load('config_MacBook_rkwitt');
+    config = load('config/config_MacBook_rkwitt');
     eval('config = config.config_MacBook_rkwitt');
 end
 if strcmp(sysType, 'eisbaer') % GPU server
 
-  	config = load('config_eisbaer');
+  	config = load('config/config_eisbaer');
 		eval('config = config.config_eisbaer');
 
 end
 if strcmp(sysType, 'grassmann') % rkwitt iMac
 
-  	config = load('config_grassmann');
+  	config = load('config/config_grassmann');
 		eval('config = config.config_grassmann');
 
 end

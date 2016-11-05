@@ -1,7 +1,7 @@
 function generate_EDN_data( config, DataMatrix, DataMatrix_img2idx, selection, gamma, Nsplits, seed )
 %
-% Generate data for EDN
-
+% Generate data for EDN training
+%
 
 rng( seed );
 
@@ -9,6 +9,7 @@ debug = 1;
 
 OBJ_SCORE_START   = 4100; 
 OBJ_DEPTH         = 4098; 
+OBJ_ANGLE         = 4099; 
 FC7_FEATURES      = 1:4096; 
 
 load( 'object_classes' );
@@ -31,8 +32,64 @@ for j=1:length( idx )
 end
 
 
-fid = fopen( fullfile( config.SUNRGBD_common, 'objects', 'ED_meta.txt' ), 'w' );
+fid = fopen( fullfile( config.SUNRGBD_common, 'info_agnostic_training.txt' ), 'w' );
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Generate data for object agnostic EDN
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+object_data = DataMatrix(use,:);
+
+object_score = object_data(:, OBJ_SCORE_START: OBJ_SCORE_START + length(object_classes) - 1);
+
+pos =  object_score(:,3:end) > 0.5 ;
+
+assert( sum(sum(pos,2)<=1) == length(pos));
+
+pos = logical(sum(pos,2));
+
+object_data = DataMatrix( pos, :);
+
+object_X = object_data( :, FC7_FEATURES );
+object_Y = object_data( :, OBJ_DEPTH );
+    
+binning_info = binbystep(object_Y, 1, 0.5);
+binning_info(binning_info(:,3) < gamma,:) = [];
+
+ for bin_j=1:size( binning_info, 1 )
+     
+     lo = binning_info( bin_j, 1 );
+     hi = binning_info( bin_j, 2 );
+     
+     ED_meta_line = strcat(num2str( lo ), ',', ...
+         num2str( hi ) );
+     
+     pos_bin_j =  object_Y >= lo & object_Y < hi ;
+     
+     object_X_bin_j = object_X( pos_bin_j, : ); % FC7
+     object_Y_bin_j = object_Y( pos_bin_j, : ); % Attribute
+     
+     object_trn_bin_j = sprintf( 'trn_i%.4d.hdf5', bin_j );
+     hdf5write( fullfile( ...
+         config.SUNRGBD_common, ...
+         object_trn_bin_j ), ...
+         'X', object_X_bin_j, ...
+         'Y', object_Y_bin_j );
+     
+     fprintf(fid, [ED_meta_line '\n']); 
+ end
+ fclose(fid);
+
+ 
+clear binning_info
+clear object_data
+clear object_score
+clear object_X
+clear object_Y
+clear pos
+
+
+fid = fopen( fullfile( config.SUNRGBD_common, 'objects', 'info_object_training.txt' ), 'w' );
 
 for k=1:Nobjects
     

@@ -30,6 +30,32 @@ end
 
 DataMatrix = DataMatrix(use,:);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Generate data for object agnostic COR training
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+object_score = DataMatrix(:, OBJ_SCORE_START: OBJ_SCORE_START + length(object_classes) - 1);
+
+pos =  object_score(:,3:end) > 0.5 ;
+
+assert( sum(sum(pos,2)<=1) == length(pos));
+
+pos = logical(sum(pos,2));
+
+object_data = DataMatrix( pos, :);
+
+object_X = object_data(:, FC7_FEATURES);
+object_Y = object_data(:, [OBJ_DEPTH OBJ_ANGLE]);
+object_dir = fullfile( config.SUNRGBD_common, 'objects' );
+object_X_file = fullfile( object_dir, out_file );
+hdf5write( object_X_file, 'X', object_X, 'Y', object_Y );
+
+clear object_score
+clear object_X
+clear object_Y
+clear pos
+
+
 for i=1:Nobjects
     
     if strcmp( object_classes{ i }, '__background__' )
@@ -68,6 +94,5 @@ for i=1:Nobjects
         
     end
     
-    
-    
+   
 end
