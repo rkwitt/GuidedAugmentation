@@ -32,7 +32,7 @@ for j=1:length( idx )
 end
 
 
-fid = fopen( fullfile( config.SUNRGBD_common, 'info_agnostic_training.txt' ), 'w' );
+fid = fopen( fullfile( config.SUNRGBD_common, 'objects', 'info_agnostic_training.txt' ), 'w' );
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Generate data for object agnostic EDN
@@ -61,15 +61,16 @@ binning_info(binning_info(:,3) < gamma,:) = [];
      lo = binning_info( bin_j, 1 );
      hi = binning_info( bin_j, 2 );
      
-     ED_meta_line = strcat(num2str( lo ), ',', ...
-         num2str( hi ) );
-     
      pos_bin_j =  object_Y >= lo & object_Y < hi ;
      
      object_X_bin_j = object_X( pos_bin_j, : ); % FC7
      object_Y_bin_j = object_Y( pos_bin_j, : ); % Attribute
      
      object_trn_bin_j = sprintf( 'trn_i%.4d.hdf5', bin_j );
+     
+     ED_meta_line = strcat(num2str( lo ), ',', ...
+         num2str( hi ), ',', object_trn_bin_j );
+     
      hdf5write( fullfile( ...
          config.SUNRGBD_common, ...
          object_trn_bin_j ), ...
