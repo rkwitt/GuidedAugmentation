@@ -11,7 +11,7 @@ import yaml
 import h5py
 import scipy.io as sio
 import subprocess
-from optparse import OptionParser
+import argparse
 import numpy as np
 
 
@@ -19,22 +19,25 @@ def setup_parser():
     """
     Setup the CLI parsing.
     """
-    parser = OptionParser()
-    parser.add_option("-c", "--config_file",    help="YAML config file.")
-    parser.add_option("-i", "--input_file",     help="MATLAB input file with features + scores")
-    parser.add_option("-y", "--information",     help="YAML information file.")
-    parser.add_option("-o", "--output_file",    help="MATLAB output file with synthetic features + meta data")   
-    parser.add_option("-s", "--source_object_file",    help="ASCII file with source object classes.")
-    parser.add_option("-t", "--target_object_file",    help="ASCII file with target object classes.")
-    parser.add_option("-g", "--gamma", default=0.7, type=float, help="Object detection threshold.")    
-    parser.add_option("-a", action="store_true", default=False, dest="agnostic", help="Switch to agnostic")
-    parser.add_option("-v", action="store_true", default=False, dest="verbose", help="Verbose output.")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--sys_config",         metavar='', help="YAML system configuration file")
+    parser.add_argument("--input_file",         metavar='', help="MATLAB input file with features/scores")
+    parser.add_argument("--edn_config",         metavar='', help="YAML EDN/COR configuration file")
+    parser.add_argument("--output_file",        metavar='', help="MATLAB output file with synthetic features")   
+    parser.add_argument("--object_file",        metavar='', help="ASCII file with object class names.")
+    parser.add_argument("--det_thr",            metavar='', default=0.7, type=float, help="Object detection threshold.")    
+    parser.add_argument("--agnostic",           action="store_true", default=False, dest="agnostic",    help="Switch to agnostic")
+    parser.add_argument("--verbose",            action="store_true", default=False, dest="verbose",     help="Verbose output.")
     return parser
 
 
 def read_file(file, verbose=False):
     """
     Read file line by line into list.
+
+    Input: filename
+
+    Output: list of whitespace-stripped lines
     """
     lines = None
     with open( file ) as fid:
@@ -45,19 +48,19 @@ def read_file(file, verbose=False):
 
 
 def read_config(file, verbose=False):
-	"""
-	Read system config YAML file.
+    """
+    Read system config YAML file.
 
-	Input: YAML config file
+    Input: YAML config file
 
-	Returns: dict
-	"""
-	if verbose:
-		print "Read config file {}".format(file)
-	fid = open(file, "r")
-	config = yaml.load(fid)
-	fid.close()
-	return config
+    Returns: dict
+    """
+    if verbose:
+        print "Read config file {}".format(file)
+    fid = open(file, "r")
+    config = yaml.load(fid)
+    fid.close()
+    return config
 
 
 def read_RCNN_mat_file(file, verbose=False):
@@ -69,7 +72,7 @@ def read_RCNN_mat_file(file, verbose=False):
         -'CNN_scores'
 
     Returns: (features, scores)
-	"""
+    """
     mat = sio.loadmat(file)
     if verbose:
         print 'Read {}x{} CNN features and {}x{} scores'.format(
@@ -83,7 +86,19 @@ def read_RCNN_mat_file(file, verbose=False):
 
 def collect_features(features, scores, object_names, skip_list, gamma=0.5, verbose=False):
     """
-    tbd.
+    Collect RCNN activations with object scores > threshold.
+
+    Input:
+        - features:     numpy NxD matrix of features
+        - scores:       numpy NxO matrix of scores for O objects
+        - object_names: list of O object names
+        - skip_list:    list of object names in object_names to slip
+        - gamma:        detection threshold [0,1]
+        - verbose:      enable verbose output
+
+    Returns:
+        - X:    numpy MxD matrix of M activations, or None if scores are too low
+        - Y:    numpy (M,) array with object IDs corresponding to the ordering in object_names
     """
     X = None # Returned features
     Y = []   # Returned object IDs for features
@@ -102,7 +117,7 @@ def collect_features(features, scores, object_names, skip_list, gamma=0.5, verbo
                 X = np.vstack((X, features[pos,:]))
             [Y.append(i) for x in pos]
 
-    if verbose:
+    if verbose and not X is None:
         print "Found {} object activations for {} object(s)".format(
             X.shape[0], len(np.unique(Y)))
         print [object_names[x] for x in Y]
@@ -112,7 +127,15 @@ def collect_features(features, scores, object_names, skip_list, gamma=0.5, verbo
 
 def implement_object_covariate_estimate(config, X, model):
     """
-    tbd.
+    Actual implementation of covariate estimation.
+
+    Input: 
+        - config: dict() with system configuration entries
+        - X:      numpy MxD matrix
+        - model:  TORCH t7 model file of trained COR model
+
+    Returns:
+        - vals:   list of M predicted covariate values
     """
     tmp_data_file = os.path.join( config['TEMP_DIR'], 'X.hdf5')
     tmp_pred_file = os.path.join( config['TEMP_DIR'], 'prediction.hdf5')
@@ -138,9 +161,6 @@ def implement_object_covariate_estimate(config, X, model):
 
 
 def object_covariate_estimate(config, info, object_features, object_labels, object_names, verbose=False):
-    """
-    tbd.
-    """
     vals = []
     N = object_features.shape[0]
     assert N == len(object_labels)
@@ -156,20 +176,16 @@ def object_covariate_estimate(config, info, object_features, object_labels, obje
             config, 
             object_features[i,:], 
             model_COR)
-        [vals.append(x) for x in tmp_val]
-        
+        [vals.append(x) for x in tmp_val] 
     return vals
 
 
 def implement_object_agnostic_covariate_estimate(config, X, model):
-    """
-    tbd.
-    """
     tmp_data_file = os.path.join( config['TEMP_DIR'], 'X.hdf5')
     tmp_pred_file = os.path.join( config['TEMP_DIR'], 'prediction.hdf5')
 
     with h5py.File( tmp_data_file, 'w') as hf:
-        if len(X.shape) == 1: # only one entry 
+        if len(X.shape) == 1:
             X = X.reshape((X.shape[0],1))
         hf.create_dataset('/X', data=X) 
     
@@ -188,23 +204,31 @@ def implement_object_agnostic_covariate_estimate(config, X, model):
     return vals
 
 
-def object_agnostic_covariate_estimate(config, object_features):
-    vals = None
+def object_agnostic_covariate_estimate(config, info, object_features, object_labels, verbose=False):
+    vals = []
+    if object_features is None:
+        return vals
+
     N = object_features.shape[0]
     
+    # iterate over all features
     for i in np.arange(N):
-        model_COR = os.path.join(config['PATH_TO_MODELS'], 'agnosticCOR.t7')
-        vals = implement_object_agnostic_covariate_estimate(
+        
+        # get object agnostic COR model
+        model_COR = os.path.join(
+            config['PATH_TO_MODELS'], 
+            'agnosticCOR.t7')
+
+        # call actual implementation
+        tmp_val = implement_object_agnostic_covariate_estimate(
             config, 
             object_features[i,:], 
             model_COR)
+        [vals.append(x) for x in tmp_val]
     return vals
 
 
 def implement_object_synthesize(config, X, model):
-    """
-    tbd.
-    """
     tmp_data_file = os.path.join( config['TEMP_DIR'], 'X.hdf5')
     tmp_pred_file = os.path.join( config['TEMP_DIR'], 'X_hat.hdf5')
     
@@ -228,6 +252,44 @@ def implement_object_synthesize(config, X, model):
         X_hat = np.asarray( hf.get('X_hat'))
         Y_hat = np.asarray( hf.get('Y_hat_EDNCOR'))
     return X_hat, Y_hat
+
+
+def object_agnostic_synthesize(config, info, object_features, object_labels, covariate_estimates, verbose=False):
+    EDN_X = None                # synthesized features
+    EDN_0 = np.zeros((1,4096))  # dummy
+    SUP_X = None                # synthesized suppl. information
+    SUP_0 = np.zeros((1,4))     # dummy
+
+    N = object_features.shape[0]
+    
+    for i in np.arange(N):
+        for j, (lo,hi) in enumerate(info['intervals']):
+            if (covariate_estimates[i] >= lo and covariate_estimates[i] <= hi):
+                for t, target in enumerate(info['EDN_targets'][j]):
+                    model_EDNCOR = os.path.join(
+                        config['PATH_TO_MODELS'], 
+                        info['EDN_models'][j][t])
+                    tmp_X, tmp_Y = implement_object_synthesize(
+                        config, 
+                        object_features[i,:], 
+                        model_EDNCOR)
+
+                    SUP_0[0,0]  = object_labels[i]
+                    SUP_0[0,1]  = tmp_Y
+                    SUP_0[0,2]  = target
+                    SUP_0[0,3]  = i
+                    if EDN_X is None:
+                        EDN_X = tmp_X
+                        SUP_X = SUP_0
+                    else:
+                        EDN_X = np.vstack((EDN_X, tmp_X))
+                        SUP_X = np.vstack((SUP_X, SUP_0))
+               
+    if verbose and not EDN_X is None:
+        print 'Synthesized {} x {} RCNN features'.format(
+            EDN_X.shape[0], EDN_X.shape[1])
+
+    return EDN_X, SUP_X
 
 
 def object_synthesize(config, info, object_features, object_labels, object_names, estimated_covariates, verbose=False):
@@ -272,10 +334,10 @@ def object_synthesize(config, info, object_features, object_labels, object_names
                         object_features[i,:], 
                         model_EDNCOR)
 
-                    SUP_0[0,0]  = label                 # Store object label ID
-                    SUP_0[0,1]  = tmp_Y                 # Store output of EDN+COR on synthesized activation                
-                    SUP_0[0,2]  = covariate_targets[m]  # Store the covariate target that was used            
-                    SUP_0[0,3]  = i                     # Store the object ID within that image          
+                    SUP_0[0,0]  = label
+                    SUP_0[0,1]  = tmp_Y
+                    SUP_0[0,2]  = covariate_targets[m]
+                    SUP_0[0,3]  = i
                     if EDN_X is None:
                         EDN_X = tmp_X
                         SUP_X = SUP_0
@@ -293,71 +355,74 @@ def object_synthesize(config, info, object_features, object_labels, object_names
 
 def main(argv=None):
     if argv is None:
- 	    argv = sys.argv
+        argv = sys.argv
 
-    parser = setup_parser()
-    (options, args) = parser.parse_args()
+    options = setup_parser().parse_args()
 
-    # 1. Read system config information
-    config = read_config(
-	   options.config_file, 
-       verbose=options.verbose)
+    sys_config = read_config(options.sys_config, verbose=options.verbose)
+    edn_config = read_config(options.edn_config, verbose=options.verbose)
 
-    fid = open(options.information)
-    info = yaml.load(fid)
-    fid.close()
-
-    # 2. Read source/target object_names (could be the same)
-    source_object_names = read_file(
-        options.source_object_file,
-        verbose=options.verbose)
-    target_object_names = read_file(
-        options.target_object_file,
+    object_names = read_file(
+        options.object_file,
         verbose=options.verbose)
 
-    # 3. Load CNN features + scores from MATLAB .mat file
-    all_features, all_scores = read_RCNN_mat_file(
-        options.input_file,
-        options.verbose)
+    all_features, all_scores = read_RCNN_mat_file(options.input_file, options.verbose)
 
-    # 4. Collect relevant object features from image
     skip_list = ['__background__', 'others']
     object_features, object_labels = collect_features(
         all_features,           # All RCNN activations
         all_scores,             # All RCNN scores
-        target_object_names,    # Names of objects corresponding to score columns
+        object_names,           # Names of objects corresponding to score columns
         skip_list,              # Skip objects
-        options.gamma,          # Detection threshold
+        options.det_thr,          # Detection threshold
         options.verbose)        # Verbose output
 
-    if options.agnostic:
-        pass        
+    if object_features is None:
+        print "No features extracted!"
+        sys.exit(-1)
 
+    synthetic_features  = None
+    covariate_estimates = None
+
+    if options.agnostic:
+        covariate_estimates = object_agnostic_covariate_estimate(
+            sys_config,
+            edn_config,
+            object_features,
+            object_labels,
+            options.verbose) 
+
+        synthetic_features, metadata = object_agnostic_synthesize(
+            sys_config,
+            edn_config,
+            object_features,
+            object_labels,
+            covariate_estimates,
+            options.verbose)
     else:
         covariate_estimates = object_covariate_estimate(
-            config,                 # System config
-            info,                   # Model information
+            sys_config,             # System config
+            edn_config,             # Model information
             object_features,        # RCNN activations for scores>gamma
             object_labels,          # RCNN object labels for activations
-            target_object_names,    # Names of objects corresponding to score columns
+            object_names,           # Names of objects corresponding to score columns
             options.verbose)        # Verbose output
 
         synthetic_features, metadata = object_synthesize(
-            config,
-            info,
+            sys_config,
+            edn_config,
             object_features,
             object_labels,
-            target_object_names,
-            covariate_estimates,    # Estimates for the covariate (e.g., depth)
+            object_names,
+            covariate_estimates,
             options.verbose)
 
-        if not synthetic_features is None:
-            sio.savemat(options.output_file, 
-                {
-                    'CNN_feature': synthetic_features, 
-                    'CNN_metadata' : metadata
-                })
-
+    if not synthetic_features is None:
+        sio.savemat(options.output_file, 
+            {
+                'CNN_feature': synthetic_features, 
+                'CNN_metadata' : metadata
+            })
 
 if __name__ == '__main__':
     sys.exit( main() )

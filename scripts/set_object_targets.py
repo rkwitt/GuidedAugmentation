@@ -41,11 +41,9 @@ for line in data:
             'EDN_cv_files': [], 
             'EDN_train_files': [],
             'COR_object_model': 'objectCOR.t7',
-            'COR_agnostic_model': 'agnosticCOR.t7',
             'EDN_targets': [],
             'EDN_pre': 'EDN_pre.t7', 
-            'EDN_object_models': [],
-            'EDN_agnostic_model': None}
+            'EDN_object_models': []}
 
     lo = float(parts[1])
     hi = float(parts[2])

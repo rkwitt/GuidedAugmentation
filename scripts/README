@@ -1,30 +1,37 @@
 HOWTO
------
+=====
 
 0. Copy models folder to some location on harddisk
 
-1. Edit config.yaml and ajust settings to reflect system configuration
+1. Edit sys_config.yaml and ajust settings to reflect system configuration
 
-2. Run augment.py as
+OBJECT-SPECIFIC AUGMENTATION
+============================
 
 python augment.py \
-	-c config.yaml \
-	-i /scratch2/rkwitt/Mount/images/image_05335_bbox_features.mat \
-	-s object_classes.txt \
-	-t object_classes.txt  \
-	-v \
-	-g 0.8 \
-	-y info_full.yaml \
-	-o image_05335_bbox_features_EDN.mat
+--sys_config sys_config.yaml \
+--input_file /scratch2/rkwitt/Mount/images/image_05335_bbox_features.mat \
+--object_file object_classes.txt \
+--verbose \
+--det_thr 0.8 \
+--edn_config info_object_agnostic_full.yaml \
+--output_file image_05335_bbox_features_EDN.mat \
+--agnostic
+
+OBJECT-AGNOSTIC AUGMENTATION
+============================
+
+python augment.py \
+--sys_config sys_config.yaml \
+--input_file /scratch2/rkwitt/Mount/images/image_05335_bbox_features.mat \
+--object_file object_classes.txt \
+--verbose \
+--det_thr 0.8 \
+--edn_config info_object_full.yaml \
+--output_file image_05335_bbox_features_EDN.mat
 
 Here, 0.8 is the detection threshold to prune detections. I would use
 at least 0.7 not to get too many.
-
--s object_classes.txt
--t object_classes.txt
-
-is currently the same. For object-agnostic stuff we will need this,
-but it's not done yet.
 
 3. Load image_05335_bbox_features_EDN.mat in MATLAB, you get two variables
 
