@@ -71,6 +71,10 @@ binning_info(binning_info(:,3) < gamma,:) = [];
      X = [];
      Y = [];
      for m=3:21
+         n = length(find(object_L_bin_j(:,m)>0.5));
+         if n < 200
+             continue;
+         end
          pp = randsample(find(object_L_bin_j(:,m)>0.5), 200);
          X = [X; object_X_bin_j(pp,:)];
          Y = [Y; object_Y_bin_j(pp,:)];
