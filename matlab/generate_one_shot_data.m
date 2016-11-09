@@ -12,7 +12,7 @@ function generate_one_shot_data( config, data, os_classes, out_dir, selection )
         
         meta = data( idx ).groundtruth3DBB;
         
-         Ndet = length( meta );
+        Ndet = length( meta );
     
         assert( Ndet == length(data( idx ).groundtruth2DBB) );
 

@@ -44,7 +44,7 @@ object_score = object_data(:, OBJ_SCORE_START: OBJ_SCORE_START + length(object_c
 
 pos =  object_score(:,3:end) > 0.5 ;
 
-assert( sum(sum(pos,2)<=1) == length(pos));
+assert( sum(sum(pos,2)<=1 ) == length(pos));
 
 pos = logical(sum(pos,2));
 
@@ -52,6 +52,7 @@ object_data = DataMatrix( pos, :);
 
 object_X = object_data( :, FC7_FEATURES );
 object_Y = object_data( :, OBJ_DEPTH );
+object_L = object_data( :, OBJ_SCORE_START+21-1 );
     
 binning_info = binbystep(object_Y, 1, 0.5);
 binning_info(binning_info(:,3) < gamma,:) = [];
@@ -65,6 +66,15 @@ binning_info(binning_info(:,3) < gamma,:) = [];
      
      object_X_bin_j = object_X( pos_bin_j, : ); % FC7
      object_Y_bin_j = object_Y( pos_bin_j, : ); % Attribute
+     object_L_bin_j = object_L( pos_bin_j, : ); % Scores
+     
+     X = [];
+     Y = [];
+     for m=3:21
+         pp = randsample(find(object_L_bin_j(:,m)==m), 200);
+         X = [X; object_X_bin_j(pp,:)];
+         Y = [Y; object_Y_bin_j(pp,:)];
+     end
      
      object_trn_bin_j = sprintf( 'trn_i%.4d.hdf5', bin_j );
      
@@ -75,8 +85,11 @@ binning_info(binning_info(:,3) < gamma,:) = [];
          config.SUNRGBD_common, ...
          'objects', ...
          object_trn_bin_j ), ...
-         'X', object_X_bin_j, ...
-         'Y', object_Y_bin_j );
+         'X', X, ...
+         'Y', Y );
+     
+         %'X', object_X_bin_j, ...
+         %'Y', object_Y_bin_j );
      
      fprintf(fid, [ED_meta_line '\n']); 
  end
