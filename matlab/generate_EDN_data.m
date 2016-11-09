@@ -52,7 +52,7 @@ object_data = DataMatrix( pos, :);
 
 object_X = object_data( :, FC7_FEATURES );
 object_Y = object_data( :, OBJ_DEPTH );
-object_L = object_data( :, OBJ_SCORE_START+21-1 );
+object_L = object_data( :, OBJ_SCORE_START:OBJ_SCORE_START+21-1 );
     
 binning_info = binbystep(object_Y, 1, 0.5);
 binning_info(binning_info(:,3) < gamma,:) = [];
@@ -95,6 +95,7 @@ binning_info(binning_info(:,3) < gamma,:) = [];
  end
  fclose(fid);
 
+ return;
  
 clear binning_info
 clear object_data
