@@ -1,4 +1,4 @@
-function one_shot_object_recognition( data, Nruns,  seed )
+function res = one_shot_object_recognition( data, Nruns,  seed )
 
 rng(seed);
 
@@ -6,7 +6,10 @@ Nobjects = length(data.keys);
 
 fprintf('%d objects in one-shot experiment\n', Nobjects);
 
-addpath('~/Documents/MATLAB/liblinear-1.94/matlab/');
+%addpath('~/Documents/MATLAB/liblinear-1.94/matlab/');
+%addpath('/tmp/liblinear-2.1/matlab');
+
+res = zeros(Nruns,2);
 
 for r=1:Nruns
 
@@ -17,6 +20,8 @@ for r=1:Nruns
     Ytrn_EDN = []; % augmented one-shot labels + original
 
     sel = zeros(Nobjects,1);
+    
+    % pick one object from each category
     for i=1:Nobjects
 
         det = data(num2str(i));
@@ -29,26 +34,47 @@ for r=1:Nruns
         Ytrn_ORG = [Ytrn_ORG; i]; %#ok<AGROW>
         
         augmented =  det{sel(i,1),2};
-        augmented = augmented(1:2,:);
-        
+                
         Xtrn_EDN = [Xtrn_EDN; augmented]; %#ok<AGROW>
-        Ytrn_EDN = [Ytrn_EDN; ones(size(augmented,1),1)*i];%#ok<AGROW>
-        Xtrn_EDN = [Xtrn_EDN]; %#ok<AGROW>
-        Ytrn_EDN = [Ytrn_EDN]; %#ok<AGROW>
-        
+        Ytrn_EDN = [Ytrn_EDN; ones(size(augmented,1),1)*i];%#ok<AGROW>        
     end
+    
+    %Xtrn_ORG = Xtrn_ORG./repmat(sqrt(sum(Xtrn_ORG.^2,2)),1,4096);
+    Xtrn_ORG = Xtrn_ORG./repmat(sum(Xtrn_ORG,2),1,4096);
+    
+    Xtrn_EDN = [Xtrn_EDN; Xtrn_ORG];
+    Ytrn_EDN = [Ytrn_EDN; Ytrn_ORG];    
+    
+    %Xtrn_EDN = Xtrn_EDN./repmat(sqrt(sum(Xtrn_EDN.^2,2)),1,4096);
+    Xtrn_EDN = Xtrn_EDN./repmat(sum(Xtrn_EDN,2),1,4096);
     
     % linear SVM trained on one-shot samples ONLY
     mdl_ORG = train(...
         double(Ytrn_ORG),...
         sparse(double(Xtrn_ORG)), ...
-        '-B 1 -q');
+        '-B 1 -c 10 -s 3 -q');
     
     % linear SVM trained on one-shot samples + augmented data
+%     log2c = -5:1:5;
+%     bestLog2c = 1;
+%     cvMatrix = zeros(length(log2c),1);
+%     bestcv = 0;
+%     for i = 1:length(log2c)
+%         C = log2c(i);
+%         param = ['-q -B 1 -s 3 -v 10 -c ', num2str(2^C)];
+%         cv = train(double(Ytrn_EDN), sparse(double(Xtrn_EDN)), param);
+%         cvMatrix(i,1) = cv;
+%         if (cv >= bestcv)
+%             bestcv = cv; 
+%             bestLog2c = C;
+%         end
+%     end
+    
+    param = '-q -B 1 -s 3 -c 10'; %, num2str(2^bestLog2c)];
     mdl_EDN = train(...
         double(Ytrn_EDN), ...
         sparse(double(Xtrn_EDN)), ...
-        '-B 1 -q');
+        param);
     
     Xtst = [];
     Ytst = [];
@@ -70,25 +96,32 @@ for r=1:Nruns
 
     end
 
+    %Xtst = Xtst./repmat(sqrt(sum(Xtst.^2,2)),1,4096); % L2 norm
+    Xtst = Xtst./repmat(sum(Xtst,2),1,4096); % L1 norm
+
     [lab_ORG, acc_ORG, ~] = predict( ...
         Ytst, ...
         sparse(double(Xtst)), ...
         mdl_ORG, ...
-        '-q');
+        '-q'); %#ok<ASGLU>
     
     [lab_EDN, acc_EDN, ~] = predict( ...
         Ytst, ...
         sparse(double(Xtst)), ...
         mdl_EDN, ...
-        '-q');
+        '-q');%#ok<ASGLU>
     
-    fprintf('Accuracy: %.2f | %.2f\n', ...
+
+    fprintf('[%d]: Accuracy: %.2f | %.2f\n', r, ...
         acc_ORG(1), ...
         acc_EDN(1));
     
-    disp([diag(confusionmat(Ytst,lab_ORG)) ...
-          diag(confusionmat(Ytst,lab_EDN))]);
-    pause
+    res(r,1) = acc_ORG(1);
+    res(r,2) = acc_EDN(1);
+    
+    %disp([diag(confusionmat(Ytst,lab_ORG)) ...
+    %      diag(confusionmat(Ytst,lab_EDN))]);
+    %pause
 end
 
 

@@ -26,38 +26,38 @@ data = read_list( objf )
 data = data[2:] # ignore __background__ + others
 
 # Train agnostic COR if training/testing files exist
-if os.path.exists( os.path.join( base, 'train.hdf5' ) ) and \
-   os.path.exists( os.path.join( base, 'test.hdf5' ) ):
+# if os.path.exists( os.path.join( base, 'train.hdf5' ) ) and \
+#    os.path.exists( os.path.join( base, 'test.hdf5' ) ):
    
-    cmd = [TORCH,
-        TRAIN_COR,
-        '-logFile',         os.path.join( base, 'agnosticCOR.log' ),
-        '-saveCOR',         os.path.join( base, 'agnosticCOR.t7' ),
-        '-dataFile',        os.path.join( base, 'train.hdf5' ), 
-        '-batchSize',       '256',
-        '-epochs',          '20',
-        '-column',          '1',
-        '-cuda']        
-    print cmd
-    subprocess.call(cmd)
+    # cmd = [TORCH,
+    #     TRAIN_COR,
+    #     '-logFile',         os.path.join( base, 'agnosticCOR.log' ),
+    #     '-saveCOR',         os.path.join( base, 'agnosticCOR.t7' ),
+    #     '-dataFile',        os.path.join( base, 'train.hdf5' ), 
+    #     '-batchSize',       '256',
+    #     '-epochs',          '50',
+    #     '-column',          '1',
+    #     '-cuda']        
+    # print cmd
+    # subprocess.call(cmd)
         
-    cmd = [TORCH,
-        TEST_COR,
-        '-modelCOR',        os.path.join( base, 'agnosticCOR.t7' ),
-        '-outputFile',      os.path.join( base, 'agnosticCOR_predictions.hdf5' ),
-        '-dataFile',        os.path.join( base, 'test.hdf5' ),
-        '-column',          '1',
-        '-cuda']
-    print cmd
-    subprocess.call(cmd)
+    # cmd = [TORCH,
+    #     TEST_COR,
+    #     '-modelCOR',        os.path.join( base, 'agnosticCOR.t7' ),
+    #     '-outputFile',      os.path.join( base, 'agnosticCOR_predictions.hdf5' ),
+    #     '-dataFile',        os.path.join( base, 'test.hdf5' ),
+    #     '-column',          '1',
+    #     '-eval',
+    #     '-cuda']
+    # print cmd
+    # subprocess.call(cmd)
 
-    with h5py.File( os.path.join( base, 'agnosticCOR_predictions.hdf5' ), 'r' ) as hf:
+    # with h5py.File( os.path.join( base, 'agnosticCOR_predictions.hdf5' ), 'r' ) as hf:
 
-        Y_hat = np.asarray( hf.get( 'Y_hat' ) ).reshape(-1)
-        Y = np.asarray( hf.get( 'Y' ) ).reshape(-1)
+    #     Y_hat = np.asarray( hf.get( 'Y_hat' ) ).reshape(-1)
+    #     Y = np.asarray( hf.get( 'Y' ) ).reshape(-1)
 
-        print "Agnostic | MSE: %.4f" % ( np.mean( ( Y_hat - Y )**2 ) )
-
+    #     print "Agnostic | MSE: %.4f" % ( np.mean( ( Y_hat - Y )**2 ) )
 
 for obj in data:
 
@@ -66,35 +66,35 @@ for obj in data:
     if os.path.exists( path + '/train.hdf5' ) and \
        os.path.exists( path + '/test.hdf5' ):
 
-        cmd = [TORCH,
-            TRAIN_COR,
-            '-logFile',         path + '/objectCOR.log',
-            '-saveCOR',         path + '/objectCOR.t7',
-            '-dataFile',        path + '/train.hdf5',
-            '-batchSize',       '64',
-            '-epochs',          '20',
-            '-column',          '1', # Depth for now
-            '-cuda']
+        # cmd = [TORCH,
+        #     TRAIN_COR,
+        #     '-logFile',         path + '/objectCOR.log',
+        #     '-saveCOR',         path + '/objectCOR.t7',
+        #     '-dataFile',        path + '/train.hdf5',
+        #     '-batchSize',       '64',
+        #     '-epochs',          '20',
+        #     '-column',          '1', # Depth for now
+        #     '-cuda']
 
-        print cmd
-        subprocess.call(cmd)
+        # print cmd
+        # subprocess.call(cmd)
         
-        cmd = [TORCH,
-            TEST_COR,
-            '-modelCOR',        os.path.join( base, 'agnosticCOR.t7' ),
-            '-outputFile',      path + '/objectCOR_predictions.hdf5',
-            '-dataFile',        path + '/test.hdf5',
-            '-column',          '1',
-            '-cuda']
-        print cmd
-        subprocess.call(cmd)
+        # cmd = [TORCH,
+        #     TEST_COR,
+        #     '-modelCOR',        os.path.join( base, 'agnosticCOR.t7' ),
+        #     '-outputFile',      path + '/objectCOR_predictions.hdf5',
+        #     '-dataFile',        path + '/test.hdf5',
+        #     '-column',          '1',
+        #     '-cuda']
+        # print cmd
+        # subprocess.call(cmd)
 
-        with h5py.File( path + '/objectCOR_predictions.hdf5', 'r' ) as hf:
+        # with h5py.File( path + '/objectCOR_predictions.hdf5', 'r' ) as hf:
 
-            Y_hat = np.asarray( hf.get( 'Y_hat' ) ).reshape(-1)
-            Y = np.asarray( hf.get( 'Y' ) ).reshape(-1)
+        #     Y_hat = np.asarray( hf.get( 'Y_hat' ) ).reshape(-1)
+        #     Y = np.asarray( hf.get( 'Y' ) ).reshape(-1)
 
-            print "Object: %20s | MSE: %.4f" % ( obj, np.mean( ( Y_hat - Y )**2 ) )
+        #     print "Object: %20s | MSE: %.4f" % ( obj, np.mean( ( Y_hat - Y )**2 ) )
 
         # Predict with agnostic predictor
         cmd = [TORCH,
@@ -102,6 +102,7 @@ for obj in data:
             '-modelCOR',        path + '/objectCOR.t7',
             '-outputFile',      path + '/agnosticCOR_predictions.hdf5',
             '-dataFile',        path + '/test.hdf5',
+            '-eval',
             '-column',          '1',
             '-cuda']
         print cmd

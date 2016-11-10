@@ -16,8 +16,8 @@ SUNRGBD_common  = '/scratch2/rkwitt/Mount/images/objects'
 
 TORCH           = '/home/pma/rkwitt/torch/install/bin/th'
 TRAIN_PRE       = '/home/pma/rkwitt/GuidedAugmentation/torch/pretrain.lua'
-TRAIN_EDN       = '/home/pma/rkwitt/GuidedAugmentation/torch/train_EDN.lua'
-TEST_EDN        = '/home/pma/rkwitt/GuidedAugmentation/torch/test_EDN.lua'
+TRAIN_EDN       = '/home/pma/rkwitt/GuidedAugmentation/torch/train_EDNbeta.lua'
+TEST_EDN        = '/home/pma/rkwitt/GuidedAugmentation/torch/test_EDNbeta.lua'
 MODEL_DEF       = '/home/pma/rkwitt/GuidedAugmentation/torch/models/ae.lua'
 
 
@@ -117,8 +117,8 @@ def train_EDN_object_agnostic(info, verbose=True):
                 '-saveModel',   os.path.join( SUNRGBD_common, EDN_model),
                 '-target',      str( target ), 
                 '-cuda',
-                '-epochs',      '20',
-                '-batchSize',   '128']
+                '-epochs',      '50',
+                '-batchSize',   '64']
             print cmd
             subprocess.call( cmd )
 

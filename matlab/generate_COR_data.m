@@ -46,15 +46,33 @@ object_data = DataMatrix( pos, :);
 
 object_X = object_data(:, FC7_FEATURES);
 object_Y = object_data(:, [OBJ_DEPTH OBJ_ANGLE]);
+object_L = object_data(:, OBJ_SCORE_START:OBJ_SCORE_START+Nobjects-1);
+
+
+X = [];
+Y = [];
+for m=3:21
+    n = length(find(object_L(:,m)>0.5));
+    if n < 100
+        fprintf('skipping %d\n', m);
+        continue;
+    end
+    pp = randsample(find(object_L(:,m)>0.5), 100);
+    X = [X; object_X(pp,:)];
+    Y = [Y; object_Y(pp,:)];
+end
+
 object_dir = fullfile( config.SUNRGBD_common, 'objects' );
 object_X_file = fullfile( object_dir, out_file );
-hdf5write( object_X_file, 'X', object_X, 'Y', object_Y );
+%hdf5write( object_X_file, 'X', object_X, 'Y', object_Y );
+hdf5write( object_X_file, 'X', X, 'Y', Y );
 
 clear object_score
 clear object_X
 clear object_Y
 clear pos
 
+return;
 
 for i=1:Nobjects
     

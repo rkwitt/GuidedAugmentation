@@ -72,10 +72,11 @@ binning_info(binning_info(:,3) < gamma,:) = [];
      Y = [];
      for m=3:21
          n = length(find(object_L_bin_j(:,m)>0.5));
-         if n < 200
+         if n < 100
+             fprintf('skipping %d\n', m);
              continue;
          end
-         pp = randsample(find(object_L_bin_j(:,m)>0.5), 200);
+         pp = randsample(find(object_L_bin_j(:,m)>0.5), 100);
          X = [X; object_X_bin_j(pp,:)];
          Y = [Y; object_Y_bin_j(pp,:)];
      end
@@ -84,6 +85,13 @@ binning_info(binning_info(:,3) < gamma,:) = [];
      
      ED_meta_line = strcat(num2str( lo ), ',', ...
          num2str( hi ), ',', object_trn_bin_j );
+     
+     disp(size(X));
+     disp( fullfile( ...
+         config.SUNRGBD_common, ...
+         'objects', ...
+         object_trn_bin_j ));
+     
      
      hdf5write( fullfile( ...
          config.SUNRGBD_common, ...

@@ -7,6 +7,7 @@ rkwitt, mdixit, 2016
 
 import os
 import sys
+import uuid 
 import yaml
 import h5py
 import scipy.io as sio
@@ -21,8 +22,8 @@ def setup_parser():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--sys_config",         metavar='', help="YAML system configuration file")
-    parser.add_argument("--input_file",         metavar='', help="MATLAB input file with features/scores")
     parser.add_argument("--edn_config",         metavar='', help="YAML EDN/COR configuration file")
+    parser.add_argument("--input_file",         metavar='', help="MATLAB input file with features/scores")
     parser.add_argument("--output_file",        metavar='', help="MATLAB output file with synthetic features")   
     parser.add_argument("--object_file",        metavar='', help="ASCII file with object class names.")
     parser.add_argument("--det_thr",            metavar='', default=0.7, type=float, help="Object detection threshold.")    
@@ -137,8 +138,8 @@ def implement_object_covariate_estimate(config, X, model):
     Returns:
         - vals:   list of M predicted covariate values
     """
-    tmp_data_file = os.path.join( config['TEMP_DIR'], 'X.hdf5')
-    tmp_pred_file = os.path.join( config['TEMP_DIR'], 'prediction.hdf5')
+    tmp_data_file = os.path.join( config['TEMP_DIR'], 'COR_X_'+str(uuid.uuid4())+'.hdf5')
+    tmp_pred_file = os.path.join( config['TEMP_DIR'], 'COR_X_'+str(uuid.uuid4())+'_prediction.hdf5')
 
     with h5py.File( tmp_data_file, 'w') as hf:
         if len(X.shape) == 1: # only one entry 
@@ -151,12 +152,15 @@ def implement_object_covariate_estimate(config, X, model):
         '-modelCOR', model,
         '-dataFile', tmp_data_file,
         '-outputFile', tmp_pred_file]
-    print cmd
     subprocess.call( cmd )
     
     vals = None
     with h5py.File( tmp_pred_file ,'r') as hf:
         vals = np.asarray( hf.get('Y_hat')).reshape(-1)
+
+    os.remove(tmp_data_file)
+    os.remove(tmp_pred_file)
+
     return vals
 
 
@@ -181,8 +185,9 @@ def object_covariate_estimate(config, info, object_features, object_labels, obje
 
 
 def implement_object_agnostic_covariate_estimate(config, X, model):
-    tmp_data_file = os.path.join( config['TEMP_DIR'], 'X.hdf5')
-    tmp_pred_file = os.path.join( config['TEMP_DIR'], 'prediction.hdf5')
+
+    tmp_data_file = os.path.join( config['TEMP_DIR'], 'COR_X_'+str(uuid.uuid4())+'.hdf5')
+    tmp_pred_file = os.path.join( config['TEMP_DIR'], 'COR_X_'+str(uuid.uuid4())+'_prediction.hdf5')
 
     with h5py.File( tmp_data_file, 'w') as hf:
         if len(X.shape) == 1:
@@ -195,12 +200,15 @@ def implement_object_agnostic_covariate_estimate(config, X, model):
         '-modelCOR', model,
         '-dataFile', tmp_data_file,
         '-outputFile', tmp_pred_file]
-    print cmd
     subprocess.call( cmd )
 
     vals = None
     with h5py.File( tmp_pred_file ,'r') as hf:
         vals = np.asarray( hf.get('Y_hat')).reshape(-1)
+
+    os.remove(tmp_data_file)
+    os.remove(tmp_pred_file)
+
     return vals
 
 
@@ -229,8 +237,8 @@ def object_agnostic_covariate_estimate(config, info, object_features, object_lab
 
 
 def implement_object_synthesize(config, X, model):
-    tmp_data_file = os.path.join( config['TEMP_DIR'], 'X.hdf5')
-    tmp_pred_file = os.path.join( config['TEMP_DIR'], 'X_hat.hdf5')
+    tmp_data_file = os.path.join( config['TEMP_DIR'], 'EDN_X_'+str(uuid.uuid4())+'.hdf5')
+    tmp_pred_file = os.path.join( config['TEMP_DIR'], 'EDN_Xhat_'+str(uuid.uuid4())+'.hdf5')
     
     with h5py.File( tmp_data_file, 'w') as hf:
         if len(X.shape) == 1: # only one entry 
@@ -243,7 +251,6 @@ def implement_object_synthesize(config, X, model):
         '-dataFile', tmp_data_file,
         '-model', model,
         '-outputFile', tmp_pred_file]
-    print cmd
     subprocess.call( cmd )
    
     X_hat = None # Synthesized RCNN feature
@@ -251,6 +258,10 @@ def implement_object_synthesize(config, X, model):
     with h5py.File( tmp_pred_file ,'r') as hf:
         X_hat = np.asarray( hf.get('X_hat'))
         Y_hat = np.asarray( hf.get('Y_hat_EDNCOR'))
+
+    os.remove(tmp_data_file)
+    os.remove(tmp_pred_file)
+
     return X_hat, Y_hat
 
 

@@ -1,24 +1,40 @@
-function generate_one_shot_data( config, data, os_classes, out_dir, selection )
-
+function generate_one_shot_data( config, data, os_classes, out_dir, selection, debug )
 
     if ~exist( out_dir, 'dir' )
         mkdir( out_dir );
     end
+
+    % data ... SUNRGBDnew
     
     cnt = 1;
     for i=1:length( selection )
 
+        %
+        % get image ID
+        %
         idx = selection( i );
         
+        %
+        % get information for object in 3D BB
+        %
         meta = data( idx ).groundtruth3DBB;
         
+        %
+        % get the number of annotated objects 
+        %
         Ndet = length( meta );
     
+        %
+        % make sure we have an equal number of 2D bounding boxes
+        %
         assert( Ndet == length(data( idx ).groundtruth2DBB) );
 
         boxes = [];
         labels = [];
         
+        %
+        % read image
+        %
         img_file = fullfile( ...
             config.SUNRGBD_common, ...
             data( idx ).sequenceName, ...
@@ -29,12 +45,19 @@ function generate_one_shot_data( config, data, os_classes, out_dir, selection )
             fprintf('File %d not found!\n', img_file);
         end
         
+        %
+        % iterate over objects and extract the ones that we want 
+        %
         for j=1:Ndet
 
             label = meta(j).classname;
-            
+
             for c=1:length( os_classes )
             
+                %
+                % take object if it is in our list of object classes that
+                % we want.
+                %
                 if strcmp( label, os_classes{c} )
 
                     bb = data( idx ).groundtruth2DBB(j).gtBb2D;
@@ -43,16 +66,34 @@ function generate_one_shot_data( config, data, os_classes, out_dir, selection )
                         continue;
                     end
                     
-%                     im = imread( img_file );                    
-%                     imshow( im );
-%                     rectangle( 'Position', ...
-%                         [bb(1), bb(2), bb(3), bb(4)], ...
-%                         'EdgeColor','blue', 'LineWidth',3);
-%                     title( os_classes{c} );
+                    %
+                    % draw BB in debug mode
+                    %
+                    if debug
+                        
+                        im = imread( img_file );
+                        imshow( im );
+                        rectangle( 'Position', ...
+                            [bb(1), bb(2), bb(3), bb(4)], ...
+                            'EdgeColor','blue', 'LineWidth',3);
+                        title( os_classes{c} );
+                        pause;
+                        close all;
+                        
+                    end
                     
-                    tmp_boxes = round( [bb(1), bb(2), bb(3)+bb(1), bb(4)+bb(2)] ); 
-                    boxes = [boxes; tmp_boxes];
-                    labels = [labels; c];
+                    %
+                    % store BB as [x1,y1,x2,y2]; originally BBs are stored
+                    % as [x,y,w,h] in the SUNRGBD mat file
+                    %                 
+                    tmp_boxes = round( [bb(1), bb(2), bb(3)+bb(1), bb(4)+bb(2)] );
+                    
+                    %
+                    % add box and assign a label ID, i.e., the ID that
+                    % specifies the object class.
+                    %
+                    boxes = [boxes; tmp_boxes]; %#ok<AGROW>
+                    labels = [labels; c]; %#ok<AGROW>
                     
                 end
                 
@@ -60,6 +101,9 @@ function generate_one_shot_data( config, data, os_classes, out_dir, selection )
             
         end
             
+        %
+        % in case we did not find anything in the i-th image, skip ...
+        %
         if isempty( boxes )
             continue;
         end

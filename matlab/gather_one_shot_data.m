@@ -10,13 +10,9 @@ LAB_FILE_FMT = '%s_ss_labels.mat';
 
 info = containers.Map();
 
-h = waitbar(0,'Initializing...');
-
 for i=1:Nimages
     
-    waitbar(i/Nimages,h, sprintf('%d/%d', i, Nimages));
-    
-    %disp(i);
+    disp(i);
     [~,img_base,~] = fileparts( img_files(i).name );
     
     % load necessary files
@@ -28,20 +24,31 @@ for i=1:Nimages
     assert( exist( org_file, 'file' ) > 0 );
     assert( exist( lab_file, 'file' ) > 0 );
    
+    %
+    % load original features and object labels to those features
+    %    
     load(org_file);
     load(lab_file);
     Xorg = CNN_feature;
     
+    
+    %
+    % load EDN-generated features 
+    %
     load(edn_file);        
     Xedn = CNN_feature;
     
     clear CNN_feature;
     clear CNN_scores;
+    
    
-    label_ids = unique(labels,'stable'); % ensure order is the same as order of occurrence
+    label_ids = unique(labels, 'stable'); % ensure order is the same as order of occurrence
      
     for l=1:length(label_ids)
-    
+        
+        %
+        % convert label num -> string (used as key later)
+        %
         label_str = num2str(label_ids(l));
         if ~info.isKey(label_str)
             info(label_str) = [];
@@ -53,6 +60,9 @@ for i=1:Nimages
         %
         pos = find(labels==label_ids(l));
         
+        %
+        % get information structure for label_ids(l)
+        %
         O = info(label_str);
         
         %
@@ -85,7 +95,7 @@ for i=1:Nimages
         
 end
 
-close(h);
+%close(h);
 
 
 
