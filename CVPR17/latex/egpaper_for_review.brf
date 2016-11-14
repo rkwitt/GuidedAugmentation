@@ -30,7 +30,7 @@
 \backcite {Rasmussen05a}{{3}{3.1}{subsection.3.1}}
 \backcite {Ioffe15a}{{3}{3.1}{subsection.3.1}}
 \backcite {Nair10a}{{3}{3.1}{subsection.3.1}}
-\backcite {Bengio09a}{{4}{3.2}{subsection.3.2}}
+\backcite {Bengio09a}{{3}{3.2}{subsection.3.2}}
 \backcite {Clevert16a}{{4}{3.2}{equation.3.3}}
 \backcite {Srivastava14a}{{4}{3.2}{equation.3.3}}
 \backcite {Girshick15a}{{5}{4}{figure.caption.4}}
@@ -45,5 +45,5 @@
 \backcite {Song15a}{{6}{1}{table.caption.5}}
 \backcite {Peng15a}{{7}{4.3}{subsection.4.3}}
 \backcite {Peng15a}{{7}{4.3}{subsection.4.3}}
-\backcite {Gibbons2011a}{{7}{4.3}{subsection.4.3}}
+\backcite {Gibbons2011a}{{8}{4.3}{subsection.4.3}}
 \backcite {Dixit16a}{{8}{5}{section.5}}

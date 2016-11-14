@@ -7,12 +7,18 @@
 \usepackage{rotating}
 \usepackage{multirow}
 \usepackage[table]{xcolor}
+%\usepackage[draft]{fixme}
 \usepackage{amsmath}
 \usepackage[labelfont={bf,small},font=small]{caption}
 \usepackage{amssymb}
 \usepackage{pifont}% http://ctan.org/pkg/pifont
 \newcommand{\cmark}{\ding{51}}%
 \newcommand{\xmark}{\ding{55}}%
+
+
+\newcommand{\mn}[1]{{\color{magenta}{#1}}}
+\newcommand{\mnl}[1]{{\color{magenta}{($\leftarrow$ #1)}}}
+\newcommand{\mnr}[1]{{\color{magenta}{(#1 $\rightarrow$)}}}
 
 \newcommand\crule[3][black]{\textcolor{#1}{\rule{#2}{#3}}}
 
@@ -58,15 +64,15 @@ First line of institution2 address\\
 \begin{abstract}
 We consider the problem of data augmentation, i.e., generating artificial
 samples to extend a given corpus of training data. Specifically, we propose
-attributed-guided augmentation (AGA) which aims to learn a mapping
+attributed-guided augmentation (AGA) which learns a mapping
 that allows to synthesize data such that an attribute of a synthesized sample 
 is at a desired value or strength. This is particularly interesting in situations 
-where little data with no attribute annotation is is available for learning, but 
+where little data with no attribute annotation is available for learning, but 
 we have access to a large external corpus of heavily annotated samples. 
 While prior works primarily augment in the space of images,
 we propose to perform augmentation in feature space directly.
 We implement our approach as a deep encoder-decoder architecture that 
-facilitates to learn the synthesis function in an end-to-end manner. 
+learns the synthesis function in an end-to-end manner. 
 We demonstrate the utility of our approach on the problem of 
 one-shot object recognition in a transfer-learning setting where
 we have no prior knowledge of the new categories, except for 
@@ -107,23 +113,23 @@ we learn a mapping for features with associated \emph{depth} values in the
 range of 1-2 [m] to $t=3$~[m] and apply that mapping to an instance of a new 
 object category. In our approach, this mapping is learned in 
 an \emph{object-agnostic} manner. In our example, this means that
-\emph{all} training data from chairs and tables is to learn $\phi$).}
+\emph{all} training data from chairs and tables is \mn{used} to learn $\phi$.}
 \end{figure}
 
 \vskip1ex
 CNN-based transfer is generally achieved either by {\it finetuning\/} a pre-trained network 
-such as~\cite{Krizhevsky12a}, on a new image dataset or by designing a new image 
-representation on such a dataset with the activations of the pre-trained network 
+such as in~\cite{Krizhevsky12a} on a new image dataset or by designing a new image 
+representation on such a dataset based on the activations of the pre-trained network 
 layers~\cite{Donahue14a,Gong14a,Dixit15a,Cimpoi15a}.
 Recent proposals of transfer have shown highly competitive performance on different predictive 
 tasks with a modest amount of new data (as few as 50 images per class). The effectiveness 
-of transfer based methods, however, has not yet been tested under more severe constrains like 
+of transfer based methods, however, has not yet been tested under more severe constrains such as 
 in a {\it few shot\/} or a {\it one shot\/} learning scenario. In these problems, the amount 
 of examples available for learning may be as few as one per category. Finetuning a pre-trained 
 CNN with millions of parameters to such inadequate datasets is clearly not a viable option. 
 A one-shot classifier trained on CNN activations will also be prone to over-fitting due to the 
 high dimensionality of the feature space. The only way to solve the problem of limited data is 
-to somehow {\it augment\/} the training corpus by generating more examples for 
+to {\it augment\/} the training corpus by generating more examples for 
 the given classes.
 
 \vskip1ex
@@ -143,7 +149,7 @@ is often dataset-specific and can cause substantial bias in recognition results
 \vskip1ex
 An important observation in the context of our work is 
 that augmentation is typically performed on an image, or video level.
-While this is not a particular problem with simple techniques, such as flipping or cropping, it can 
+While this is not a problem with simple techniques, such as flipping or cropping, it can 
 become computationally expensive if more elaborate augmentation 
 techniques are used. We argue that, in specific problem settings, 
 augmentation might as well be performed in \emph{feature space}, 
@@ -197,12 +203,12 @@ detector to identify objects in 2D images. This is followed by training a
 neural network regressor which predicts the 3D attributes of a detected object, 
 namely its depth from the camera plane and pose. 
 An encoder-decoder network is then trained which, for a detected object at a certain 
-depth and pose, will hallucinate the changes in its RCNN features for 
+depth and pose, will hallucinate\mnl{Is hallucinate standard terminology here?} the changes in its RCNN features for 
 different depths/poses. Using this architecture, for a new image, we are able to 
 %extract features generated by a RCNN object detector as well as 
 augment existing feature descriptors by 
 an auxiliary set of features that correspond to the object changing its 
-3D position. Since, our framework relies on object attributes to 
+3D position. Since our framework relies on object attributes to 
 guide the augmentation process, we refer to it as 
 {\it attribute-guided augmentation (AGA)\/}.
 
@@ -230,11 +236,11 @@ guide the augmentation process, we refer to it as
 \noindent
 \textbf{Organization.} Sec.~\ref{section:relatedwork} reviews
 related work on data augmentation. 
-Sec.~\ref{section:architecture} then introduces
+Sec.~\ref{section:architecture} introduces
 the proposed encoder-decoder architecture for attribute-guided 
-augmentation. In Sec.~\ref{section:experiments}, we study 
-the building blocks of this approach in detail and then 
-demonstrate that AGA in feature space considerably improves 
+augmentation. Sec.~\ref{section:experiments} studies 
+the building blocks of this approach in detail and  
+demonstrates that AGA in feature space considerably improves 
 one-shot object recognition performance on previously unseen 
 objects. Sec.~\ref{section:discussion} concludes the paper with
 a discussion and an outlook on potential future directions.
@@ -245,7 +251,7 @@ a discussion and an outlook on potential future directions.
 Our review of related work primarily focuses on 
 \emph{data augmentation} strategies. While many techniques
 have been proposed in the context of training deep 
-neural networks to avoid overfitting and increase variability
+neural networks to avoid overfitting and to increase variability
 in the data, other (sometimes closely related) 
 techniques have previously appeared in the context
 of one-shot and transfer learning. We can roughly
@@ -321,8 +327,8 @@ invariance to this class of transformations.
 
 \vskip1ex
 While \emph{all} previously discussed methods essentially 
-propose \emph{image-level} augmentation for training CNNs, 
-our approach is different in that we aim for
+propose \emph{image-level} augmentation to train CNNs, 
+our approach is different in that we perform
 augmentation in \emph{feature space}. Along these lines, the 
 approach of Kwitt \etal \cite{Kwitt16a} is conceptually 
 similar to our work. In detail, the authors suggest to learn
@@ -333,7 +339,7 @@ then transfered to previously unseen data for one-shot recognition.
 However, different to our approach, the learned models 
 are simple linear regressors and learning is done in a 
 \emph{scene-class specific} manner.
-Contrary to that, we learn deep non-linear
+In contrast, we learn deep non-linear
 models in a \emph{class-agnostic} manner which 
 enables straightforward application to object recognition, 
 without the requirement of a direct relation of new
@@ -359,7 +365,7 @@ and upper bounds of the $i$-th interval.
 \vskip1ex
 \noindent
 \textbf{Objective.}
-On a conceptual level, we aim for a mapping function $\phi$ which,
+On a conceptual level, we construct a mapping function $\phi$ which,
 given a desired attribute strength $t$ for some attribute $A$, 
 transforms input features $\mathbf{x} \in \mathcal{X}$ such that 
 the attribute strength changes in a controlled manner to a desired 
@@ -372,18 +378,17 @@ target value $t$. More formally, we aim to learn
 \end{equation}
 Since, the formulation in Eq.~\eqref{eqn:general} 
 is overly generic, we constrain the 
-problem to the case where we aim to learn different
-$\phi_i^k$ for a selection of intervals $[l_i,h_i]$ and a selection
-of $K$ given target attribute values $t_k$. While
-this simplifies the problem, it requires good \emph{attribute 
-predictor} a-priori, since, otherwise, we could not decide which 
-$\phi_i$ to use. During testing, we (1) predict the attribute strength, \ie, 
+problem to the case where we learn different
+$\phi_i^k$ for a selection of intervals $[l_i,h_i]$\mnl{Should this be $t \in [l_i,h_i]$? What exactly are these intervals of?}
+and a selection of $K$ given target attribute values $t_k$\mnl{I am not following this. Are you saying that each interval has a fixed, constant target attribute value?}. While
+this simplifies the problem, it requires \mn{a good a-priori \emph{attribute 
+predictor}}, since, otherwise, we could not decide which 
+$\phi_i$ to use\mnl{What is the difference between $\phi_i$ and $\phi_i^k$?}. During testing, we (1) predict the attribute strength, \ie, 
 $\gamma(\mathbf{x}) =
 \hat{t}$, and then (2) synthesize features as
 $\hat{\mathbf{x}} = 
 \phi_i^k(\mathbf{x})$ for $k=1,\ldots,T$ if $\hat{t} 
-\in [l_i,h_i]$. Next, we discuss each 
-component of this architecture in detail.
+\in [l_i,h_i]$\mnl{I do not understand how the predicted value $\hat{t}$ is used in feature synthesis. Is the goal not to synethesize features for all attributes?}. Next, we discuss each component of this architecture in detail.
 
 \subsection{Attribute regression}
 \label{subsection:covariateregression}
@@ -411,7 +416,7 @@ the characteristics of the attributes that need to be predicted.
 \begin{figure}[h!]
 \centering{
 \includegraphics[scale=0.85]{figures/COR}}
-\caption{Architecture of the attribute regressor $\gamma$. \label{fig:COR}}
+\caption{Architecture of the attribute regressor $\gamma$.\mnl{I do not understand the symbols in this graph.} \label{fig:COR}}
 \end{figure}
 
 \vskip0.5ex
@@ -420,14 +425,14 @@ the characteristics of the attributes that need to be predicted.
 be trained from a collection of $N$ training tuples $
 \{(\mathbf{x}_i,s_i)\}_{i=1}^N$. We remark that for 
 this part of the architecture, we do not need any binning 
-of the attribute range.
+of the attribute range.\mnl{I am not following why binning is needed at all.}
 
 \subsection{Feature regression}
 \label{subsection:aug}
 
 To implement $\phi$, we design an encoder-decoder
 architecture, reminiscent of a conventional autoencoder \cite{Bengio09a}.
-Our objective, however, is not encode and then reconstruct 
+Our objective, however, is not to encode and then reconstruct 
 the input, but to produce an output that 
 resembles a feature descriptor of an object at a 
 desired attribute value.
@@ -452,8 +457,8 @@ features that are no longer recognizable as
 this class, as the encoder-decoder will \emph{only} learn to ``fool'' the 
 attribute predictor $\gamma$.
 For that reason, we add a \emph{regularizer} to the objective
-of Eq.~\eqref{eqn:unconstrained}, \ie, we require that the 
-decoding result needs to be close, \eg, in the $L_2$ norm, to the
+of Eq.~\eqref{eqn:unconstrained}, \ie, we require the 
+decoding result to be close, \eg, in the $L_2$ norm, to the
 input. This changes the optimization problem to
 \begin{equation}
 \min_{\phi \in \mathcal{C}} L(\mathbf{x},t; \phi) = \underbrace{(\gamma(\phi(\mathbf{x}))-t)^2}_\text{Target mismatch} + 
@@ -488,7 +493,7 @@ attribute $A \in \mathcal{A}$. During training, this
 attribute regressor is appended to the network and its 
 weights are frozen. Hence, only the encoder-decoder weights
 are updated. To train one $\phi_i^k$ for each interval $[l_i,h_i]$ and
-target attribute value $t_k$, we partition
+target attribute value $t_k$\mnl{Is this a fixed value in the middle of the interval? When using the network for feature synthesis do you still need the feature predictor or do you simply run the input through all $K$ networks? I am a bit confused here.}, we partition
 the training data from the external corpus into subsets $\mathcal{S}_i$, 
 such that $\forall (\mathbf{x}_n,s_n) \in \mathcal{S}_i: s_n \in [l_i,h_i]$. 
 Each $\phi_i^k$ is then learned by using only those data tuples. We
@@ -513,7 +518,7 @@ Song \etal \cite{Song15a}. This dataset contains 10335
 RGB images with depth maps, as well as detailed 
 annotations for more than 1000 objects in the form of 
 2D and 3D bounding boxes.
-In our setup, we will use object depth and pose as our
+In our setup, we use object depth and pose as our
 object attributes, \ie, $\mathcal{A} = \{\texttt{Depth}, 
 \texttt{Pose}\}$. For each ground-truth 2D bounding box 
 of an object, we use the depth value at its centroid. Pose
@@ -556,7 +561,7 @@ the same 19 objects as in \cite{Song15a}. We then run
 the detector on all images from our training split and 
 keep all bounding boxes with detection scores $>0.7$
 and a sufficient overlap (measured by the IoU $>$0.5) 
-with the 2D ground-truth bounding boxes.
+with the 2D ground-truth bounding boxes\mnl{Not totally clear to me. Why are you using all of thes proposals? Just to crate more input data, even though some of these proposals do not exactly capture the objects of interest?}.
 The associated RCNN activations (at the \texttt{FC7} layer) 
 are then used as our features $\mathbf{x}$. Each 
 bounding box proposal that remains after overlap and 
@@ -578,7 +583,7 @@ the encoder-decoder network are implemented in \texttt{Torch}.
 All models are trained using \texttt{Adam} \cite{Kingma15a}. 
 For the attribute regressor, we train for 30 epochs with a
 batch size of 300 and a learning rate of 
-$0.001$. The encoder-decoder network also trained for 30
+$0.001$. The encoder-decoder network is also trained for 30
 epochs with the same learning rate, but with a batch
 size of 128. The dropout probability during training is set to 
 $0.25$. No dropout is used for testing. For our classification
@@ -605,9 +610,9 @@ using the regressor(s) in a transfer-learning setting, since we
 cannot assume knowledge about the object classes that appear in
 the target dataset. An alternative, \emph{second} 
 strategy is to train \emph{object-agnostic} regressors 
-using features from all objects classes together. While 
+using features from all object classes together. While 
 we will use the object-agnostic model in all subsequent
-experiments, we evaluate both strategies to order assess 
+experiments, we evaluate both strategies to assess 
 the potential loss in prediction performance in the 
 object-agnostic setting. 
 
@@ -644,7 +649,7 @@ bed 		& 0.40 & 0.30 & 44.51 & 70.51\\
 of the attribute regressor, evaluated on \emph{19 objects} from \cite{Song15a}.
 In our setup, the pose estimation error quantifies the error in predicting a
 rotation around the $z$-axis. \textbf{D} indicates \texttt{Depth}, \textbf{P} indicates
-\texttt{Pose}.}
+\texttt{Pose}.\mnl{Should there be an average over all these results? Also, what is the typical range for these values? I.e., is a depth error of 0.5 m good or not? Lastly, pose errors seem to be enormous. And what does an error >90 degrees mean for object that are approximately symmetric?}}
 \end{table}
 
 Table~\ref{table:maeCOR} lists the median-absolute-error (MAE) of
@@ -680,13 +685,13 @@ For augmentation, we choose $0.5, 1, \ldots, \max(\texttt{Depth})$ as
 target attribute values for \texttt{Depth} and  
 $45^\circ, 70^\circ,\ldots, 180^\circ$ for \texttt{Pose}. 
 This setup results in 11 target values for 
-\texttt{Depth} and 7 for \texttt{Pose}. 
+\texttt{Depth} and 7 for \texttt{Pose}. \mnl{I really cannot follow what the $\Phi_i^k$ are for.}
 
 \vskip0.5ex
 We use two separate evaluation metrics to assess the performance of
 $\phi_i^k$. \emph{First}, we are interested in \emph{how well} the feature
 regressor can generate features that correspond to the desired attribute
-target values. To accomplish this, we run each synthetic feature $\hat{\mathbf{x}}$ through
+target values\mnl{Is there not exactly one target value for each $\Phi_i^k$?}. To accomplish this, we run each synthetic feature $\hat{\mathbf{x}}$ through
 the attribute predictor and assess the MAE, \ie, $|\gamma(\hat{\mathbf{x}}) -t|$, 
 over all attribute targets $t$; Table~\ref{table:ednnonseen} lists the average 
 MAE, per object, for (1) features from object classes that were \emph{seen} 
@@ -698,7 +703,7 @@ has learned to synthesize features, such that $\gamma(\hat{\mathbf{x}})
 
 \vskip0.5ex
 \emph{Second}, we are interested in how much synthesized features
-differ from original features. While we cannot guarantee an identity
+differ from original features. \mnl{I do not follow this? Can you not compute the true features for the test data and compare these features to the synthesized ones? What am I missing?}While we cannot guarantee an identity
 preserving mapping, ``closeness'' to the original features can serve
 as a surrogate measure of this desired property.
 While, in principle, we could simply evaluate $\|\phi_i^k(\mathbf{x})-\mathbf{x}\|^2$, 
@@ -778,7 +783,7 @@ augmenters $\phi_i^k$ from instances of object classes
 that are available in an external, annotated database (in 
 our case, SUN RGB-D). We denote this collection of object 
 classes as our \emph{source classes} $\mathcal{S}$. 
-Given one instance from a collection of a completely different 
+Given one instance from a collection of completely different 
 object classes, denoted as the \emph{target classes} 
 $\mathcal{T}$, we aim to train a discriminant classifier 
 $C$ on $\mathcal{T}$, \ie, $C: \mathcal{X} \rightarrow \{1,\ldots,|\mathcal{T}|\}$. 
@@ -796,16 +801,16 @@ about $\mathcal{T}$, except for the single training instances.
 \textbf{Setup.} To evaluate performance on one-shot object 
 recognition for \emph{unseen} object classes, we adhere
 to the following setup: First, we randomly select two 
-collections of 10 object classes to assess the quality
+collections\mnl{Why do you randomly select two collections?} of 10 object classes to assess the quality
 of AGA on different sets of unseen objects. We ensure
 that each object class has at least 100 samples in the 
-testing split of SUN RGB-D and that no object class in
+testing split of SUN RGB-D and that no object class \mn{is}\mnl{correct?}
 in $\mathcal{S}$. This guarantees (1) that we have never seen
 the image, nor (2) the object category during training.
 Since, SUN RGB-D does not have object-centric images, we 
 use the ground-truth bounding boxes to obtain the actual 
-object crops. This allows us to tease out the actual benefit of 
-augmentation without having to deal confounding factors such 
+object crops. This allows us to tease out the benefit of 
+augmentation without having to deal with confounding factors such 
 as background noise. The two sets of object classes are denoted 
 $\mathcal{T}_1$\footnote{$\mathcal{T}_1$ = \{picture, whiteboard, fridge, counter, books, stove, cabinet, printer, computer, ottoman\}}
 and $\mathcal{T}_2$\footnote{$\mathcal{T}_2$ = 
@@ -818,18 +823,18 @@ problem. For each object image in $\mathcal{T}_i$, we
 then collect RCNN \texttt{FC7} features. 
 
 \vskip1ex
-As a \emph{Baseline} comparison, we train a linear C-SVM
+As a \emph{Baseline} comparison\mnl{Is this a standard thing to do? Do I understand this correctly that this means that for each class you only have one training instance?}, we train a linear C-SVM
 (with $L_1$-normalized features) 
 using only the single instances of each object class in 
 $\mathcal{T}_i$. Exactly the same parameter settings of 
 the linear SVM, but then used train on the single instances + 
-features synthesized by our approach. We repeat the 
+features synthesized by our approach\mnl{Grammar? What do you mean?}. We repeat the 
 selection of one-shot instances 500 times and report
 the average recognition accuray. 
 
 \vskip0.5ex
 \noindent
-\textit{Remark.} Notably, the design of this experiment is somewhat 
+\textit{Remark.} The design of this experiment is  
 similar to \cite[Section 4.3.]{Peng15a}, with the exception 
 that we (1) \emph{do not} detect objects, (2) augmentation
 is performed in feature space and (3) no 
@@ -851,7 +856,7 @@ In general, we observe that adding AGA synthesized features improves
 recognition accuracy over the \emph{Baseline} in all cases. For \texttt{Depth}-augmented
 features, gains range from 3-5 percentage points, for \texttt{Pose}-augmented 
 features, gains range from 2-4 percentage points on average. We attribute
-this effect to the difficuly in predicting object pose from 2D data, an can
+this effect to the difficuly in predicting object pose from 2D data, as can
 be seen from Table~\ref{table:maeCOR}. Nevertheless, in both augmentation settings, 
 the gains are statistically significant (\wrt the \emph{Baseline}), as evaluated by a Wilcoxn rank sum test
 for equal medians \cite{Gibbons2011a} at $5\%$ significance (indicated by '\checkmark' 
@@ -907,13 +912,13 @@ features.}
 \includegraphics[width=0.99\columnwidth]{figures/OneShotBar}}
 \caption{\label{fig:bestoneshot} Comparison of the \textit{Baseline} 
 classifier \vs the \emph{best} (\cf Table~\ref{table:oneshot}) one-shot recognition results obtained by AGA, 
-over three different sets $\mathcal{T}_i$ of (unseen) object classes. }
+over three different sets $\mathcal{T}_i$ of (unseen) object classes.\mnl{What is the point of this figure if you have Table~\ref{table:oneshot}> Does it not show the same information?}}
 \end{figure}
 
 \section{Discussion}
 \label{section:discussion}
 
-We presented an approach towards attribute-guided 
+We presented an approach toward attribute-guided 
 augmentation of data in feature space. Our experiments
 show that object attributes, such as pose and depth, are
 beneficial in the context of one-shot recognition, \ie,
@@ -933,7 +938,7 @@ settings, the gains may be less apparent. As our approach
 is not limited to depth or pose, augmentation with respect
 to other object attributes would be required.
 
-While, training the encoder-decoder network requires 
+While training the encoder-decoder network requires 
 a pretrained attribute regressor, our results show 
 that even in case of mediocre performance of this component 
 (\eg, pose prediction), synthesized features can still 
@@ -951,9 +956,6 @@ thus better model changes in the attribute values.
 might equally benefit from AGA, particularly when representations
 of scenes are built on top of detected objects, as in \cite{Dixit16a}
 for instance.
-
-
-
 
 
 {\small
