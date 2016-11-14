@@ -1,0 +1,47 @@
+This is BibTeX, Version 0.99d (TeX Live 2015)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: egpaper_for_review.aux
+The style file: ieee.bst
+Database file #1: egbib.bib
+Database file #2: halucination.bib
+You've used 34 entries,
+            2120 wiz_defined-function locations,
+            672 strings with 8214 characters,
+and the built_in function-call counts, 10898 in all, are:
+= -- 919
+> -- 679
+< -- 0
++ -- 267
+- -- 232
+* -- 708
+:= -- 1871
+add.period$ -- 102
+call.type$ -- 34
+change.case$ -- 217
+chr.to.int$ -- 0
+cite$ -- 34
+duplicate$ -- 452
+empty$ -- 918
+format.name$ -- 232
+if$ -- 2252
+int.to.chr$ -- 0
+int.to.str$ -- 34
+missing$ -- 36
+newline$ -- 173
+num.names$ -- 68
+pop$ -- 317
+preamble$ -- 1
+purify$ -- 184
+quote$ -- 0
+skip$ -- 247
+stack$ -- 0
+substring$ -- 271
+swap$ -- 60
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 132
+warning$ -- 0
+while$ -- 73
+width$ -- 36
+write$ -- 349
