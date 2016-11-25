@@ -19,9 +19,8 @@ if opt.cuda then
 end
 
 model = torch.load(opt.model)
-modelEDN = model:get(1) -- encoder-decoder network
-modelCOR = model:get(2) -- covariate regressor
---print(model)
+modelEDN = model:get(1) 		-- encoder-decoder network
+modelCOR = model:get(2):get(2) 	-- covariate regressor
 
 if opt.cuda then
 	model = model:cuda()
@@ -44,9 +43,9 @@ if opt.cuda then
 end
 
 model:evaluate()
-local Y_hat_EDNCOR = model:forward(X)
---print(torch.mean(Y_hat_EDNCOR))
- 
+local Y_hat_EDNCOR = model:forward(X)[2]
+print(torch.mean(Y_hat_EDNCOR))
+
 modelEDN:evaluate()
 local X_hat = modelEDN:forward(X)
 

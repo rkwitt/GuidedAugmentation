@@ -39,17 +39,21 @@ for line in data:
 
     if info is None:
         info = {
-            'intervals':            [], 
-            'EDN_train_files' :     [],
-            'EDN_pre' :             'EDN_pre.t7',
-            'COR_agnostic_model':   'agnosticCOR.t7',
-            'EDN_models':           [],
-            'EDN_targets' :         []}
+            'intervals':            [],                 # [l_i, h_i]
+            'EDN_train_files' :     [],                 # Training data file for EDN
+            'EDN_pre' :             'EDN_pre.t7',       # Name of pretrained EDN model
+            'AR_agnostic_model':    'agnosticAR.t7',    # Name of pretrained AR model
+            'EDN_models':           [],                 # Will hold the final trained EDN models
+            'EDN_targets' :         []                  # Will hold the attribute target values for the EDN models
+            }
 
     info['intervals'].append((lo,hi))
     info['EDN_train_files'].append(EDN_train_file)
 
-set_EDN_targets(info)
+# DEPTH
+#set_EDN_targets(info)
+# POSE
+set_EDN_targets(info, np.arange(np.deg2rad(45), np.pi, np.deg2rad(25)))
 
 fid = open(sys.argv[2], 'w')
 yaml.dump(info, fid)

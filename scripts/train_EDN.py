@@ -11,30 +11,7 @@ import h5py
 import sys
 import os
 
-
-SUNRGBD_common  = '/scratch2/rkwitt/Mount/images/objects'
-
-TORCH           = '/home/pma/rkwitt/torch/install/bin/th'
-TRAIN_PRE       = '/home/pma/rkwitt/GuidedAugmentation/torch/pretrain.lua'
-TRAIN_EDN       = '/home/pma/rkwitt/GuidedAugmentation/torch/train_EDNbeta.lua'
-TEST_EDN        = '/home/pma/rkwitt/GuidedAugmentation/torch/test_EDNbeta.lua'
-MODEL_DEF       = '/home/pma/rkwitt/GuidedAugmentation/torch/models/ae.lua'
-
-
-def read_config(file, verbose=False):
-    """
-    Read system config YAML file.
-
-    Input: YAML config file
-
-    Returns: dict
-    """
-    if verbose:
-        print "Read config file {}".format(file)
-    fid = open(file, "r")
-    config = yaml.load(fid)
-    fid.close()
-    return config
+from utils import read_config
 
 
 def setup_parser():
@@ -50,18 +27,18 @@ def setup_parser():
     return parser
 
 
-def train_EDN_object_agnostic(info, verbose=True):
+def train_EDN_object_agnostic(config, info, verbose=True):
 
     # First, collect data for pre-training
     pretrain_file = os.path.join( 
-        SUNRGBD_common,
-        'pretrain_full.hdf5')
+        config['PATH_TO_MODELS'], 
+        'EDN_pre.hdf5')
 
     pretrain_data = None
     if not os.path.exists(pretrain_file):
 
         for trn_file in info['EDN_train_files']:
-            with h5py.File( os.path.join( SUNRGBD_common, trn_file ),'r') as hf:
+            with h5py.File( os.path.join( config['PATH_TO_MODELS'], trn_file ), 'r') as hf:
                 X = np.asarray( hf.get('X') ).transpose()
                 if verbose:
                     print "Adding {} x {} data from {}".format(
@@ -79,17 +56,17 @@ def train_EDN_object_agnostic(info, verbose=True):
 
     
     pretrain_model = os.path.join(
-        SUNRGBD_common,
+        config['PATH_TO_MODELS'],
         info['EDN_pre'])
         
     if not os.path.exists(pretrain_model):
-        cmd = [TORCH,
-            TRAIN_PRE,
+        cmd = [config['TORCH'],
+            config['TRAIN_PRE'],
             '-dataFile',  pretrain_file,
             '-saveModel', pretrain_model,
             '-batchSize', '256',
             '-epochs', '20',
-            '-modelFile', MODEL_DEF,
+            '-modelFile', config['EDN_def'],
             '-cuda']  
         print cmd
         subprocess.call( cmd )   
@@ -109,12 +86,12 @@ def train_EDN_object_agnostic(info, verbose=True):
 
             trn_file = info['EDN_train_files'][i]
 
-            cmd = [TORCH,
-                TRAIN_EDN,
-                '-dataFile',    os.path.join( SUNRGBD_common, trn_file ),
-                '-modelEDN',    os.path.join( SUNRGBD_common, info['EDN_pre']),
-                '-modelCOR',    os.path.join( SUNRGBD_common, info['COR_agnostic_model'] ),
-                '-saveModel',   os.path.join( SUNRGBD_common, EDN_model),
+            cmd = [config['TORCH'],
+                config['TRAIN_EDN'],
+                '-dataFile',    os.path.join( config['PATH_TO_MODELS'], trn_file ),
+                '-modelEDN',    os.path.join( config['PATH_TO_MODELS'], info['EDN_pre']),
+                '-modelAR',     os.path.join( config['PATH_TO_MODELS'], info['AR_agnostic_model'] ),
+                '-saveModel',   os.path.join( config['PATH_TO_MODELS'], EDN_model),
                 '-target',      str( target ), 
                 '-cuda',
                 '-epochs',      '50',
@@ -131,23 +108,23 @@ def train_EDN_object_agnostic(info, verbose=True):
     return info
 
 
-def train_EDN_object(info):
+def train_EDN_object(config, info):
 
     for i, obj in enumerate(info):
 
-        obj_path = os.path.join( SUNRGBD_common, obj )
+        obj_path = os.path.join( config['PATH_TO_MODELS'], obj )
         
-        pretrain_data  = os.path.join(obj_path, 'train.hdf5')
-        pretrain_model = os.path.join(obj_path, info[obj]['EDN_pre'])
+        pretrain_data  = os.path.join( obj_path, 'train.hdf5' )
+        pretrain_model = os.path.join( obj_path, info[obj]['EDN_pre'] )
 
         if not os.path.exists(pretrain_model):
-            cmd = [TORCH,
-                TRAIN_PRE,
+            cmd = [config['TORCH'],
+                config['TRAIN_PRE'],
                 '-dataFile',  pretrain_data,
                 '-saveModel', pretrain_model,
                 '-batchSize', '64',
                 '-epochs', '20',
-                '-modelFile', MODEL_DEF,
+                '-modelFile', config['EDN_def'],
                 '-cuda']  
             print cmd
             subprocess.call( cmd )   
@@ -166,11 +143,11 @@ def train_EDN_object(info):
                     "_" + str(target) + ".t7"
                 models.append(EDN_model)
 
-                cmd = [TORCH,
-                  TRAIN_EDN,
+                cmd = [config['TORCH'],
+                  config['TRAIN_EDN'],
                   '-dataFile',              os.path.join( obj_path, info[obj]['EDN_train_files'][k] ),
                   '-modelEDN',              os.path.join( obj_path, info[obj]['EDN_pre']),
-                  '-modelCOR',              os.path.join( obj_path, info[obj]['COR_object_model'] ),
+                  '-modelAR',              os.path.join( obj_path, info[obj]['AR_object_model'] ),
                   '-saveModel',             os.path.join( obj_path, EDN_model),
                   '-target',                str( target ), 
                   '-cuda',
@@ -182,82 +159,7 @@ def train_EDN_object(info):
             info[obj]['EDN_object_models'].append(tuple(models))
             
     return info
-
-
-def eval_EDN_object(info):
-
-    # iterate over all object names in info
-    for i, obj in enumerate(info):
-
-        obj_path = os.path.join( SUNRGBD_common, obj )
-        
-        # pretrain
-        pretrain_data  = os.path.join(obj_path, 'train.hdf5')
-        pretrain_model = os.path.join(obj_path, info[obj]['EDN_pre'])
-
-        if not os.path.exists(pretrain_model):
-            cmd = [TORCH,
-                TRAIN_PRE,
-                '-dataFile',  pretrain_data,
-                '-saveModel', pretrain_model,
-                '-batchSize', '64',
-                '-epochs', '20',
-                '-modelFile', MODEL_DEF,
-                '-cuda']  
-            print cmd
-            subprocess.call( cmd )   
-
-        # get all evaluation intervals, i.e., tuples (start,end), ....
-        intervals = info[obj]['intervals']
-        
-        for k, interval in enumerate(intervals):
-
-            # get EDN covariate targets for k-th interval
-            EDN_targets = info[obj]['EDN_targets'][k]
-            for target in EDN_targets:
-
-                # iterate over all CV folds for k-th interval and current EDN covariate target
-                cv_files = info[obj]['EDN_cv_files'][k]        
-                for n, cv_file in enumerate(cv_files):
-
-                    tmp_name = next(tempfile._get_candidate_names())
-                    EDN_model = "model_" + tmp_name + '.t7'
-                    
-                    cmd = [TORCH,
-                      TRAIN_EDN,
-                      '-dataFile',              os.path.join( obj_path, cv_file + '_train.hdf5' ),
-                      '-modelEDN',              os.path.join( obj_path, info[obj]['EDN_pre']),
-                      '-modelCOR',              os.path.join( obj_path, info[obj]['COR_object_model'] ),
-                      '-saveModel',             os.path.join( '/tmp', EDN_model),
-                      '-target',                str( target ), 
-                      '-cuda',
-                      '-epochs',                '20',
-                      '-batchSize',             '64']
-                    print cmd
-                    subprocess.call( cmd )
-
-                    prediction_file = os.path.splitext( cv_file )[0] + '_test_' + str( target ) + '_prediction.hdf5'
-
-                    cmd = [TORCH,
-                        TEST_EDN,
-                        '-dataFile',              os.path.join( obj_path, cv_file + '_test.hdf5' ),
-                        '-model',                 os.path.join( '/tmp', EDN_model ),
-                        '-outputFile',            os.path.join( obj_path, prediction_file ) ]
-                    print cmd
-                    subprocess.call( cmd )
-                    
-                    with h5py.File( os.path.join( obj_path, prediction_file ),'r') as hf:
-                        Y_hat_EDNCOR = np.asarray( hf.get('Y_hat_EDNCOR') )
-
-                        print "{:10s} | {:4f} | {:4f} | [{:2f} {:2f}]".format(
-                            obj,
-                            target,
-                            np.mean(Y_hat_EDNCOR),
-                            info[obj]['intervals'][k][0],
-                            info[obj]['intervals'][k][1],
-                            )
-                    os.remove( os.path.join( '/tmp', EDN_model ) )
-                    
+              
 
 def main():
 
@@ -274,10 +176,10 @@ def main():
 
     # train in object agnostic manner
     if options.agnostic:
-        info = train_EDN_object_agnostic(info)
+        info = train_EDN_object_agnostic(config, info)
     # train in object specific manner
     else:
-        info = train_EDN_object(info)
+        info = train_EDN_object(config, info)
     
     f = open(options.output_file,'w')
     yaml.dump(info, f)

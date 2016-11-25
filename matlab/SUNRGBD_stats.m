@@ -53,8 +53,8 @@ for k=1:Nobjects
     stat(k, 1) = size( object_data, 1 );
     stat(k, 2) =  min( object_depth );
     stat(k, 3) =  max( object_depth );
-    stat(k, 4) =  min( object_angle );
-    stat(k, 5) =  max( object_angle );
+    stat(k, 4) =  rad2deg(min( object_angle ));
+    stat(k, 5) =  rad2deg(max( object_angle ));
     
 end    
     

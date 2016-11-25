@@ -1,39 +1,58 @@
 HOWTO
 =====
 
-0. Copy models folder to some location on harddisk
+1) Get models:
 
-1. Edit sys_config.yaml and ajust settings to reflect system configuration
+./getmodels.sh
 
-OBJECT-SPECIFIC AUGMENTATION
-============================
+2) Copy models to folder on harddisk, e.g., /tmp/
 
-python augment.py \
---sys_config sys_config.yaml \
---input_file /scratch2/rkwitt/Mount/images/image_05335_bbox_features.mat \
---object_file object_classes.txt \
---verbose \
---det_thr 0.8 \
---edn_config info_object_agnostic_full.yaml \
---output_file image_05335_bbox_features_EDN.mat \
---agnostic
+/tmp/pose
+/tmp/depth
 
-OBJECT-AGNOSTIC AUGMENTATION
-============================
+3) Adjust 
 
-python augment.py \
---sys_config sys_config.yaml \
---input_file /scratch2/rkwitt/Mount/images/image_05335_bbox_features.mat \
---object_file object_classes.txt \
---verbose \
---det_thr 0.8 \
---edn_config info_object_full.yaml \
---output_file image_05335_bbox_features_EDN.mat
+sys_config_depth.yaml
+sys_config_pose.yaml
 
-Here, 0.8 is the detection threshold to prune detections. I would use
-at least 0.7 not to get too many.
+4) Create a list of feature files for which to run AGA, e.g.,
+   files.txt
 
-3. Load image_05335_bbox_features_EDN.mat in MATLAB, you get two variables
 
-	1. CNN_features
-	2. CNN_metadata
+/scratch2/rkwitt/data/SUNRGBD/one-shot/rr0/image_00298
+/scratch2/rkwitt/data/SUNRGBD/one-shot/rr0/image_00511
+/scratch2/rkwitt/data/SUNRGBD/one-shot/rr0/image_01131
+...
+
+For file image_00298, this assume that the following files
+are available:
+
+image_00298_bbox_features.mat	- CNN features
+image_00298.jpg					- Image
+image_00298_ss_boxes.mat		- Bounding boxes for detections
+image_00298_ss_labels.mat		- Labels for the detections
+
+5) Run AGA.py, for POSE
+
+parallel python AGA.py \
+	--sys_config sys_config_pose.yaml \
+	--edn_config AGA_full_pose.yaml \
+	--input_file {.}_bbox_features.mat \
+	--label_file {.}_ss_labels.mat \
+	--output_file {.}_bbox_features_OAEDN_pose.mat \
+	--verbose ::: `cat files.txt`
+
+and for DEPTH
+
+parallel python AGA.py \
+	--sys_config sys_config_depth.yaml \
+	--edn_config AGA_full_depth.yaml \
+	--input_file {.}_bbox_features.mat \
+	--label_file {.}_ss_labels.mat \
+	--output_file {.}_bbox_features_OAEDN_depth.mat \
+	--verbose ::: `cat files.txt`
+
+
+
+
+

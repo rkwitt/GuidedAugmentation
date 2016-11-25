@@ -1,8 +1,0 @@
-{
-TRAIN_PRE:      /home/pma/rkwitt/GuidedAugmentation/torch/pretrain.lua,
-TEST_COR:       /home/pma/rkwitt/GuidedAugmentation/torch/test_COR.lua, 
-TEST_EDN:       /home/pma/rkwitt/GuidedAugmentation/torch/test_EDNbeta.lua,
-TORCH:          /home/pma/rkwitt/torch/install/bin/th,
-PATH_TO_MODELS: /scratch2/rkwitt/Mount/images/objects,
-TEMP_DIR:       /tmp
-}

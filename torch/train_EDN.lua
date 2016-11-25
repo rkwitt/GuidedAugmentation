@@ -8,12 +8,14 @@ require 'nn'
 local cmd = torch.CmdLine()
 -- input/output files
 cmd:option('-dataFile',             '/tmp/data.hdf5',           'HDF5 data file')
-cmd:option('-saveModel',            '/tmp/model.t7',            'Save EDN-COR model to file')
+cmd:option('-saveModel',            '/tmp/model.t7',            'Save EDNAR model to file')
 cmd:option('-logFile',              '/tmp/train_EDN.log',       'Logfile')
 cmd:option('-target',               4,                          'Covariate target value')
+
 -- input models
-cmd:option('-modelEDN',              '/tmp/pretrainedEDN.t7',   'Pretrained/initialized encoder-decoder network (EDN)')
-cmd:option('-modelCOR',              '/tmp/pretrainedCOR.t7',   'Trained covariate regressor (COR)')
+cmd:option('-modelEDN',              '/tmp/pretrainedEDN.t7',   'Pretrained encoder-decoder network (EDN)')
+cmd:option('-modelAR',               '/tmp/pretrainedAR.t7',    'Pretrained attribute regressor (AR)')
+
 -- misc. options
 cmd:option('-learningRate',         0.001,                      'Learning rate')
 cmd:option('-epochs',               10,                         'Training epochs')
@@ -41,22 +43,26 @@ local D = src:size(2) -- nr. of dimensions
 print('#Source data points: '..N..'x'..D)
 
 -- load pretrained COR and freeze layers (these are not trained)
-local modelCOR = torch.load(opt.modelCOR)
-for i, m in ipairs(modelCOR.modules) do
+local modelAR = torch.load(opt.modelAR)
+for i, m in ipairs(modelAR.modules) do
     m.accGradParameters = function() end
     m.updateParameters  = function() end
 end
-print('Froze COR layers')
+print('Froze AR layers')
 
 -- load pretrained EDN
 print( opt.modelEDN )
 modelEDN = torch.load(opt.modelEDN)
 
--- stack COR on top of EDN
+-- make Split NN
+local modelSNN = nn.ConcatTable()
+modelSNN:add(nn.Identity())
+modelSNN:add(modelAR)
+
+-- stack model together
 model = nn.Sequential()
 model:add(modelEDN)
-model:add(modelCOR)
-print(model)
+model:add(modelSNN)
 
 if opt.cuda then
     model:cuda()
@@ -70,7 +76,10 @@ print(config)
 local theta, gradTheta = model:getParameters()
 
 -- MSE loss
-local criterion = nn.MSECriterion()
+local criterion = nn.ParallelCriterion()
+criterion:add(nn.MSECriterion(),0.7) --MSE loss for features
+criterion:add(nn.MSECriterion(),0.3) --MSE loss for covariate
+
 if opt.cuda then
     criterion:cuda()
 end
@@ -111,7 +120,7 @@ for epoch = 1, opt.epochs do
         y = torch.Tensor(x:size(1),1):fill(opt.target)
         if opt.cuda then
             x = x:cuda()
-            y = y:cuda()
+            y = {x, y:cuda()}
         end
         tmp, batch_loss = optim.adam(opfunc, theta, config)
     end

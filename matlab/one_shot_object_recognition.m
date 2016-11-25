@@ -6,9 +6,6 @@ Nobjects = length(data.keys);
 
 fprintf('%d objects in one-shot experiment\n', Nobjects);
 
-%addpath('~/Documents/MATLAB/liblinear-1.94/matlab/');
-%addpath('/tmp/liblinear-2.1/matlab');
-
 res = zeros(Nruns,2);
 
 for r=1:Nruns
@@ -39,13 +36,11 @@ for r=1:Nruns
         Ytrn_EDN = [Ytrn_EDN; ones(size(augmented,1),1)*i];%#ok<AGROW>        
     end
     
-    %Xtrn_ORG = Xtrn_ORG./repmat(sqrt(sum(Xtrn_ORG.^2,2)),1,4096);
     Xtrn_ORG = Xtrn_ORG./repmat(sum(Xtrn_ORG,2),1,4096);
     
     Xtrn_EDN = [Xtrn_EDN; Xtrn_ORG];
     Ytrn_EDN = [Ytrn_EDN; Ytrn_ORG];    
     
-    %Xtrn_EDN = Xtrn_EDN./repmat(sqrt(sum(Xtrn_EDN.^2,2)),1,4096);
     Xtrn_EDN = Xtrn_EDN./repmat(sum(Xtrn_EDN,2),1,4096);
     
     % linear SVM trained on one-shot samples ONLY
@@ -53,22 +48,6 @@ for r=1:Nruns
         double(Ytrn_ORG),...
         sparse(double(Xtrn_ORG)), ...
         '-B 1 -c 10 -s 3 -q');
-    
-    % linear SVM trained on one-shot samples + augmented data
-%     log2c = -5:1:5;
-%     bestLog2c = 1;
-%     cvMatrix = zeros(length(log2c),1);
-%     bestcv = 0;
-%     for i = 1:length(log2c)
-%         C = log2c(i);
-%         param = ['-q -B 1 -s 3 -v 10 -c ', num2str(2^C)];
-%         cv = train(double(Ytrn_EDN), sparse(double(Xtrn_EDN)), param);
-%         cvMatrix(i,1) = cv;
-%         if (cv >= bestcv)
-%             bestcv = cv; 
-%             bestLog2c = C;
-%         end
-%     end
     
     param = '-q -B 1 -s 3 -c 10'; %, num2str(2^bestLog2c)];
     mdl_EDN = train(...
@@ -96,7 +75,6 @@ for r=1:Nruns
 
     end
 
-    %Xtst = Xtst./repmat(sqrt(sum(Xtst.^2,2)),1,4096); % L2 norm
     Xtst = Xtst./repmat(sum(Xtst,2),1,4096); % L1 norm
 
     [lab_ORG, acc_ORG, ~] = predict( ...
