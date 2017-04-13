@@ -1,5 +1,6 @@
 import yaml
 
+
 def read_file(file, verbose=False):
     """
     Read file line by line into list.

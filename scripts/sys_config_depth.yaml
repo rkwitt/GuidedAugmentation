@@ -4,7 +4,7 @@ TEST_AR:        /home/pma/rkwitt/GuidedAugmentation/torch/test_AR.lua,
 TRAIN_EDN:      /home/pma/rkwitt/GuidedAugmentation/torch/train_EDN.lua,
 TEST_EDN:       /home/pma/rkwitt/GuidedAugmentation/torch/test_EDN.lua,
 TORCH:          /opt/torch/install/bin/th,
-PATH_TO_MODELS: /scratch2/rkwitt/data/SUNRGBD/models/rr_depth,
+PATH_TO_MODELS: /scratch2/rkwitt/data/SUNRGBD/models/reproduce_depth,
 EDN_def:        /home/pma/rkwitt/GuidedAugmentation/torch/models/ae.lua,
 AR_def:         /home/pma/rkwitt/GuidedAugmentation/torch/models/ar.lua, 
 TEMP_DIR:       /tmp/

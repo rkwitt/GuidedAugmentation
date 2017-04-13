@@ -3,11 +3,11 @@
 #
 # Config
 #
-NGPU=2
+NCPU=2
 
 ########## POSE ##########
 
-TARGET_FOLDER="rr_pose"
+TARGET_FOLDER="reproduce_pose"
 
 #
 # Train object-agnostic POSE ARs
@@ -23,14 +23,14 @@ th ../torch/train_AR.lua \
 #
 # Train object-specific POSE ARs
 #
-cat SUNRGBD_objects.txt | grep -v others | grep -v  __background__ | parallel -j ${NGPU} th \
+cat SUNRGBD_objects.txt | grep -v others | grep -v  __background__ | parallel -j ${NCPU} th \
     ../torch/train_AR.lua \
     -dataFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/train.hdf5 \
     -logFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/objectAR.log \
     -save /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/objectAR.t7 \
     -regModel ../torch/models/ar.lua \
     -column 2 \
-    -epochs 20 \
+    -epochs 30 \
     -batchSize 64 \
     -cuda
 #
@@ -54,7 +54,7 @@ cat SUNRGBD_objects.txt | grep -v others | grep -v  __background__ | parallel th
 
 ########## DEPTH ##########
 
-TARGET_FOLDER="rr_depth"
+TARGET_FOLDER="reproduce_depth"
 
 #
 # Train object-agnostic DEPTH ARs
@@ -70,14 +70,14 @@ th ../torch/train_AR.lua \
 #
 # Train object-specific DEPTH ARs
 #
-cat SUNRGBD_objects.txt | grep -v others | grep -v  __background__ | parallel -j ${NGPU} th \
+cat SUNRGBD_objects.txt | grep -v others | grep -v  __background__ | parallel -j ${NCPU} th \
     ../torch/train_AR.lua \
     -dataFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/train.hdf5 \
     -logFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/objectAR.log \
     -save /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/objectAR.t7 \
     -regModel ../torch/models/ar.lua \
     -column 1 \
-    -epochs 20 \
+    -epochs 30 \
     -batchSize 64 \
     -cuda
 #

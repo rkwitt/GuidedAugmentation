@@ -5,7 +5,9 @@ function SUNRGBD_one_shot_data( config, SUNRGBDMeta_correct2D, os_classes, out_d
     end
 
     fid = fopen(fullfile( out_dir, 'allimgs.txt'), 'w');
-       
+    
+    GT = {};
+    
     cnt = 1;
     for i=1:length( selection )
 
@@ -25,7 +27,7 @@ function SUNRGBD_one_shot_data( config, SUNRGBDMeta_correct2D, os_classes, out_d
         Ndet = length( meta );
     
         %
-        % make sure we have an equal number of 2D bounding boxes
+        % assert that we have the correct number of 2D bounding boxes
         %
         assert( Ndet == length(SUNRGBDMeta_correct2D( idx ).groundtruth2DBB) );
 
@@ -48,6 +50,10 @@ function SUNRGBD_one_shot_data( config, SUNRGBDMeta_correct2D, os_classes, out_d
         %
         % iterate over objects and extract the ones that we want 
         %
+        
+        gt_D = []; % (D)-epth of original object(s)
+        gt_P = []; % (P)-ose of original objects(s)
+        
         for j=1:Ndet
 
             label = meta(j).classname;
@@ -61,10 +67,13 @@ function SUNRGBD_one_shot_data( config, SUNRGBDMeta_correct2D, os_classes, out_d
                 if strcmp( label, os_classes{c} )
 
                     bb = SUNRGBDMeta_correct2D( idx ).groundtruth2DBB(j).gtBb2D;
-                    
+                                        
                     if isempty( bb )
                         continue;
                     end
+                    
+                    gt_D = [gt_D; SUNRGBDMeta_correct2D( idx ).groundtruth3DBB(j).centroid(2)];     %#ok<AGROW>
+                    gt_P = [gt_P; acos(SUNRGBDMeta_correct2D( idx ).groundtruth3DBB(j).basis(1))];  %#ok<AGROW>
                     
                     %
                     % draw BB in debug mode
@@ -95,19 +104,19 @@ function SUNRGBD_one_shot_data( config, SUNRGBDMeta_correct2D, os_classes, out_d
                     %
                     boxes = [boxes; tmp_boxes]; %#ok<AGROW>
                     labels = [labels; c]; %#ok<AGROW>
-                    
+                                        
                 end
                 
             end
             
         end
-            
+                   
         %
         % in case we did not find anything in the i-th image, skip ...
         %
         if isempty( boxes )
             continue;
-        end
+        end        
         
         out_file = sprintf( 'image_%.5d.jpg', cnt );
         out_boxes = sprintf( 'image_%.5d_ss_boxes.mat', cnt );
@@ -119,9 +128,15 @@ function SUNRGBD_one_shot_data( config, SUNRGBDMeta_correct2D, os_classes, out_d
         
         fprintf(fid, 'image_%.5d\n', cnt);
         
+        GT(cnt).D = gt_D;   %#ok<AGROW>
+        GT(cnt).P = gt_P;   %#ok<AGROW>
+        GT(cnt).L = labels; %#ok<AGROW>
+        
         fprintf('[%d,%d]: %s\n', size(boxes,1), cnt, out_file);
         cnt = cnt + 1;
         
     end
+    
+    save( fullfile( out_dir, 'GT.mat' ), 'GT' );
     
     fclose(fid);

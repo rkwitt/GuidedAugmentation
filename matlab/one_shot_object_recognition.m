@@ -18,7 +18,7 @@ for r=1:Nruns
 
     sel = zeros(Nobjects,1);
     
-    % pick one object from each category
+    % pick one object from each category at random
     for i=1:Nobjects
 
         det = data(num2str(i));
@@ -36,20 +36,20 @@ for r=1:Nruns
         Ytrn_EDN = [Ytrn_EDN; ones(size(augmented,1),1)*i];%#ok<AGROW>        
     end
     
-    Xtrn_ORG = Xtrn_ORG./repmat(sum(Xtrn_ORG,2),1,4096);
+    Xtrn_ORG = Xtrn_ORG./repmat(sum(Xtrn_ORG,2),1,4096); % 1-normalize
     
     Xtrn_EDN = [Xtrn_EDN; Xtrn_ORG];
     Ytrn_EDN = [Ytrn_EDN; Ytrn_ORG];    
     
-    Xtrn_EDN = Xtrn_EDN./repmat(sum(Xtrn_EDN,2),1,4096);
+    Xtrn_EDN = Xtrn_EDN./repmat(sum(Xtrn_EDN,2),1,4096); % 1-normalize
     
-    % linear SVM trained on one-shot samples ONLY
+    % linear C-SVM trained on one-shot samples ONLY (fix C=10)
     mdl_ORG = train(...
         double(Ytrn_ORG),...
         sparse(double(Xtrn_ORG)), ...
         '-B 1 -c 10 -s 3 -q');
     
-    param = '-q -B 1 -s 3 -c 10'; %, num2str(2^bestLog2c)];
+    param = '-q -B 1 -s 3 -c 10';
     mdl_EDN = train(...
         double(Ytrn_EDN), ...
         sparse(double(Xtrn_EDN)), ...
@@ -75,7 +75,7 @@ for r=1:Nruns
 
     end
 
-    Xtst = Xtst./repmat(sum(Xtst,2),1,4096); % L1 norm
+    Xtst = Xtst./repmat(sum(Xtst,2),1,4096); % 1-normalize
 
     [lab_ORG, acc_ORG, ~] = predict( ...
         Ytst, ...
@@ -88,7 +88,6 @@ for r=1:Nruns
         sparse(double(Xtst)), ...
         mdl_EDN, ...
         '-q');%#ok<ASGLU>
-    
 
     fprintf('[%d]: Accuracy: %.2f | %.2f\n', r, ...
         acc_ORG(1), ...
@@ -96,10 +95,6 @@ for r=1:Nruns
     
     res(r,1) = acc_ORG(1);
     res(r,2) = acc_EDN(1);
-    
-    %disp([diag(confusionmat(Ytst,lab_ORG)) ...
-    %      diag(confusionmat(Ytst,lab_EDN))]);
-    %pause
 end
 
 
