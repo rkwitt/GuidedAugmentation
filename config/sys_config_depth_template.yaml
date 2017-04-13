@@ -1,0 +1,11 @@
+{
+TRAIN_PRE:      <FULL_PATH_TO_AGA_REPOSITORY>/torch/pretrain.lua,
+TEST_GAMMA:     <FULL_PATH_TO_AGA_REPOSITORY>/torch/test_gamma.lua, 
+TRAIN_PHI:      <FULL_PATH_TO_AGA_REPOSITORY>/torch/train_phi.lua,
+TEST_PHI:       <FULL_PATH_TO_AGA_REPOSITORY>/torch/test_phi.lua,
+TORCH:          <FULL_PATH_TO_TORCH_BIN>,
+PATH_TO_MODELS: <FULL_PATH_TO_DEPTH_MODELS>,
+PHI_DEF:        <FULL_PATH_TO_AGA_REPOSITORY>/torch/models/phi.lua,
+GAMMA_DEF:      <FULL_PATH_TO_AGA_REPOSITORY>/torch/models/gamma.lua, 
+TEMP_DIR:       /tmp/
+}

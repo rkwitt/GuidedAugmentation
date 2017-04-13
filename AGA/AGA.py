@@ -24,7 +24,7 @@ def setup_parser():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--sys_config",         metavar='', help="YAML system configuration file")
-    parser.add_argument("--edn_config",         metavar='', help="YAML EDN/AR configuration file")    
+    parser.add_argument("--aga_config",         metavar='', help="YAML AGA configuration file")    
     parser.add_argument("--input_file",         metavar='', help="MATLAB input file with features/scores")
     parser.add_argument("--label_file",         metavar='', default=None, help="MATLAB file with object labels of all features")
     parser.add_argument("--output_file",        metavar='', help="MATLAB output file with synthetic features")   
@@ -54,39 +54,45 @@ def read_RCNN_mat_file(file, verbose=False):
 
 def implement_object_agnostic_covariate_estimate(config, X, model):
     """
-    Creates a HDF5 file with content 'X': X and then calls the
-    TORCH attribute predictor.
-
-    Returns: Predicted attribute values
+    Attribute prediction IMPLEMENTATION
     """
 
-    tmp_data_file = os.path.join( config['TEMP_DIR'], 'AR_X_'+str(uuid.uuid4())+'.hdf5')
-    tmp_pred_file = os.path.join( config['TEMP_DIR'], 'AR_X_'+str(uuid.uuid4())+'_prediction.hdf5')
+    # temporary files that are created during attribute prediction
+    tmp_data_file = os.path.join( config['TEMP_DIR'], 'GAMMA_X_'+str(uuid.uuid4())+'.hdf5')
+    tmp_pred_file = os.path.join( config['TEMP_DIR'], 'GAMMA_X_'+str(uuid.uuid4())+'_prediction.hdf5')
 
+    # create suitable input file
     with h5py.File( tmp_data_file, 'w') as hf:
         if len(X.shape) == 1:
             X = X.reshape((X.shape[0],1))
         hf.create_dataset('/X', data=X) 
     
+    # call predictor
     cmd = [
         config['TORCH'],
-        config['TEST_AR'],
+        config['TEST_GAMMA'],
         '-model', model,
         '-dataFile', tmp_data_file,
         '-outputFile', tmp_pred_file]
     subprocess.call( cmd )
 
+    # read predictions (one prediction per feature x)
     vals = None
     with h5py.File( tmp_pred_file ,'r') as hf:
         vals = np.asarray( hf.get('Y_hat')).reshape(-1)
 
+    # cleanup tmp files
     os.remove(tmp_data_file)
     os.remove(tmp_pred_file)
 
+    # return predictions
     return vals
 
 
 def object_agnostic_covariate_estimate(config, info, object_features, object_labels, verbose=False):
+    """
+    Attribute prediction LOGIC
+    """
     vals = []
     if object_features is None:
         return vals
@@ -112,18 +118,24 @@ def object_agnostic_covariate_estimate(config, info, object_features, object_lab
 
 
 def implement_object_agnostic_synthesize(config, X, model):
+    """
+    Feature synthesis IMPLEMENTATION
+    """
 
-    tmp_data_file = os.path.join( config['TEMP_DIR'], 'EDN_X_'+str(uuid.uuid4())+'.hdf5')
-    tmp_pred_file = os.path.join( config['TEMP_DIR'], 'EDN_Xhat_'+str(uuid.uuid4())+'.hdf5')
+    # tmp. files created during synthesis
+    tmp_data_file = os.path.join( config['TEMP_DIR'], 'PHI_X_'+str(uuid.uuid4())+'.hdf5')
+    tmp_pred_file = os.path.join( config['TEMP_DIR'], 'PHI_Xhat_'+str(uuid.uuid4())+'.hdf5')
     
+    # create suitable input file
     with h5py.File( tmp_data_file, 'w') as hf:
         if len(X.shape) == 1: # only one entry 
             X = X.reshape((X.shape[0],1))
         hf.create_dataset('/X', data=X) 
 
+    # exec. synthesis 
     cmd = [
         config['TORCH'],
-        config['TEST_EDN'],
+        config['TEST_PHI'],
         '-dataFile', tmp_data_file,
         '-model', model,
         '-outputFile', tmp_pred_file]
@@ -133,17 +145,22 @@ def implement_object_agnostic_synthesize(config, X, model):
     Y_hat = None # Covariate as predicted for the synthesized feature
     with h5py.File( tmp_pred_file ,'r') as hf:
         X_hat = np.asarray( hf.get('X_hat'))
-        Y_hat = np.asarray( hf.get('Y_hat_EDNCOR'))
+        Y_hat = np.asarray( hf.get('Y_hat_PhiGamma'))
 
+    # remove tmp. files
     os.remove(tmp_data_file)
     os.remove(tmp_pred_file)
 
+    # return AGA-syn. features + values of gamma for AGA-syn. features
     return X_hat, Y_hat
 
 
 def object_agnostic_synthesize(config, info, object_features, object_labels, covariate_estimates, verbose=False):
-    EDN_X = None                # synthesized features
-    EDN_0 = np.zeros((1,4096))  # dummy
+    """
+    Feature synthesis LOGIC
+    """
+    PHI_X = None                # synthesized features
+    PHI_0 = np.zeros((1,4096))  # dummy
     SUP_X = None                # synthesized suppl. information
     SUP_0 = np.zeros((1,4))     # dummy
 
@@ -159,77 +176,82 @@ def object_agnostic_synthesize(config, info, object_features, object_labels, cov
             if (covariate_estimates[i] >= lo and covariate_estimates[i] <= hi):
                 
                 # Call \phi_i^t for all possible attribute target values
-                for t, target in enumerate(info['EDN_targets'][j]):
-                    model_EDNCOR = os.path.join(
+                for t, target in enumerate(info['PHI_targets'][j]):
+                    model_PhiGamma = os.path.join(
                         config['PATH_TO_MODELS'], 
-                        info['EDN_models'][j][t])
+                        info['PHI_models'][j][t])
 
                     tmp_X, tmp_Y = implement_object_agnostic_synthesize(
                         config, 
                         object_features[i,:], 
-                        model_EDNCOR)
+                        model_PhiGamma)
 
-                    SUP_0[0,0]  = object_labels[i]
-                    SUP_0[0,1]  = tmp_Y
-                    SUP_0[0,2]  = target
-                    SUP_0[0,3]  = i
+                    SUP_0[0,0]  = object_labels[i]  # label for object feature
+                    SUP_0[0,1]  = tmp_Y             # gamma(.) for AGA-syn. feature
+                    SUP_0[0,2]  = target            # desired attribute value
+                    SUP_0[0,3]  = i                 # ID of currently synthesized feature
 
-                    if EDN_X is None:
-                        EDN_X = tmp_X
+                    # stack AGA-synthesized features together
+                    if PHI_X is None:
+                        PHI_X = tmp_X
                         SUP_X = SUP_0
                     else:
-                        EDN_X = np.vstack((EDN_X, tmp_X))
+                        PHI_X = np.vstack((PHI_X, tmp_X))
                         SUP_X = np.vstack((SUP_X, SUP_0))
     
         # catch the case when estimated covariate > highest training covariate
         if covariate_estimates[i] > hi:
             print "Covariate {} > HI".format(covariate_estimates[i])
-            for t, target in enumerate(info['EDN_targets'][-1]):
-                model_EDNCOR = os.path.join(
+            for t, target in enumerate(info['PHI_targets'][-1]):
+                model_PhiGamma = os.path.join(
                     config['PATH_TO_MODELS'], 
-                    info['EDN_models'][-1][t])
+                    info['PHI_models'][-1][t])
                 
                 tmp_X, tmp_Y = implement_object_agnostic_synthesize(
                         config, 
                         object_features[i,:], 
-                        model_EDNCOR)
+                        model_PhiGamma)
 
                 SUP_0[0,0]  = object_labels[i]
                 SUP_0[0,1]  = tmp_Y
                 SUP_0[0,2]  = target
                 SUP_0[0,3]  = i
                     
-                if EDN_X is None:
-                    EDN_X = tmp_X
+                if PHI_X is None:
+                    PHI_X = tmp_X
                     SUP_X = SUP_0
                 else:
-                    EDN_X = np.vstack((EDN_X, tmp_X))
+                    PHI_X = np.vstack((PHI_X, tmp_X))
                     SUP_X = np.vstack((SUP_X, SUP_0))  
 
 
-    if verbose and not EDN_X is None:
+    if verbose and not PHI_X is None:
         print 'Synthesized {} x {} RCNN features'.format(
-            EDN_X.shape[0], EDN_X.shape[1])
+            PHI_X.shape[0], PHI_X.shape[1])
 
-    return EDN_X, SUP_X
+    # return AGA synthesis result + metadata
+    return PHI_X, SUP_X
 
 
 def main(argv=None):
     if argv is None:
         argv = sys.argv
 
+    # configure cmdline parsing
     options = setup_parser().parse_args()
 
+    # read system + AGA configurations
     sys_config = read_config(options.sys_config, verbose=options.verbose)
-    edn_config = read_config(options.edn_config, verbose=options.verbose)
+    aga_config = read_config(options.aga_config, verbose=options.verbose)
 
+    # read image feature file (produced by Fast-RCNN)
     object_features, object_scores = read_RCNN_mat_file(options.input_file, options.verbose)
  
     if object_features is None:
         print "No features extracted!"
         sys.exit(-1)
 
-    # Allow no label file to be given (simply set label to 1 in that case)
+    # allow no label file to be given (simply set label to 1 in that case)
     object_labels = None
     if options.label_file is None:
         object_labels = [1 for x in object_features.shape[0]]
@@ -239,21 +261,24 @@ def main(argv=None):
 
     assert len(object_labels) == object_features.shape[0], 'Dimensionality mismatch!'
 
+    # estimate attribute (strength) value
     covariate_estimates = object_agnostic_covariate_estimate(
         sys_config,
-        edn_config,
+        aga_config,
         object_features,
         object_labels,
         options.verbose) 
     
+    # run AGA-synthesis, given the estimate attribute value
     synthetic_features, metadata = object_agnostic_synthesize(
         sys_config,
-        edn_config,
+        aga_config,
         object_features,
         object_labels,
         covariate_estimates,
         options.verbose)
  
+    # unless AGA-synthesis does not produce anything, save results
     if not synthetic_features is None:
         sio.savemat(options.output_file, 
             {
