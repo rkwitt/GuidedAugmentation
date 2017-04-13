@@ -1,13 +1,15 @@
--- test encoder-decoder network (EDN) on new data
+-- test encoder-decoder network (phi) on new data
+
 require 'optim'
 require 'hdf5'
 require 'nn'
+
 
 -- cmdline parsing
 local cmd = torch.CmdLine()
 cmd:option('-dataFile', 			'/tmp/data.hdf5', 			'HDF5 data file')
 cmd:option('-outputFile', 			'/tmp/output.hdf5', 		'HDF5 output file')
-cmd:option('-model',                '/tmp/model.t7',			'Trained encoder-decoder network with regressor (EDN-COR)')
+cmd:option('-model',                '/tmp/model.t7',			'Trained phi+gamma model')
 cmd:option('-cuda', 				false, 						'Use CUDA')
 
 local opt = cmd:parse(arg)
@@ -19,8 +21,8 @@ if opt.cuda then
 end
 
 model = torch.load(opt.model)
-modelEDN = model:get(1) 		-- encoder-decoder network
-modelCOR = model:get(2):get(2) 	-- covariate regressor
+modelPhi   = model:get(1)
+modelGamma = model:get(2):get(2)
 
 if opt.cuda then
 	model = model:cuda()
@@ -42,16 +44,20 @@ if opt.cuda then
 	X = X:cuda()
 end
 
+-- run data through phi+gamma to get a prediction
+-- for synthesized features.
 model:evaluate()
-local Y_hat_EDNCOR = model:forward(X)[2]
-print(torch.mean(Y_hat_EDNCOR))
+local Y_hat_PhiGamma = model:forward(X)[2]
+print(torch.mean(Y_hat_PhiGamma))
 
-modelEDN:evaluate()
-local X_hat = modelEDN:forward(X)
+-- run data through phi to get synthesized 
+-- features.
+modelPhi:evaluate()
+local X_hat = modelPhi:forward(X)
 
 fid = hdf5.open(opt.outputFile, 'w')
-fid:write('/X', X:float() )                      	
-fid:write('/X_hat', X_hat:float())
-fid:write('/Y_hat_EDNCOR', Y_hat_EDNCOR:float())
-fid:write('/Y_hat_COR', modelCOR:forward(X):float())
+fid:write('/X', X:float() )                      			-- x
+fid:write('/X_hat', X_hat:float())							-- phi(x)
+fid:write('/Y_hat_PhiGamma', Y_hat_PhiGamma:float())		-- gamma(phi(x))
+fid:write('/Y_hat_Gamma', modelGamma:forward(X):float())	-- gamma(x)
 fid:close()

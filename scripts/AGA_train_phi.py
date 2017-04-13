@@ -2,6 +2,7 @@
 Train encoder-decoder network (phi) for AGA.
 """
 
+
 from optparse import OptionParser
 import subprocess
 import tempfile
@@ -26,17 +27,18 @@ def setup_parser():
     return parser
 
 
-def train_EDN_object_agnostic(config, info, verbose=True):
+def train_phi_object_agnostic(config, info, verbose=True):
     """
-    Train object-agnostic encoder-decoder network.
+    Train phi_i^k, i.e., the encoder-decoder network implementing 
+    the AGA synthesis function.
     """
 
-    # First, collect data for pre-training
-    pretrain_file = os.path.join(config['PATH_TO_MODELS'], 'EDN_pre.hdf5')
+    # first, collect data for pre-training
+    pretrain_file = os.path.join(config['PATH_TO_MODELS'], 'phi_pre.hdf5')
 
     pretrain_data = None
     if not os.path.exists(pretrain_file):
-        for trn_file in info['EDN_train_files']:
+        for trn_file in info['phi_train_files']:
             with h5py.File( os.path.join( config['PATH_TO_MODELS'], trn_file ), 'r') as hf:
                 X = np.asarray( hf.get('X') ).transpose()
                 if verbose:
@@ -52,11 +54,10 @@ def train_EDN_object_agnostic(config, info, verbose=True):
 
         with h5py.File( pretrain_file, 'w') as hf:
             hf.create_dataset('/X', data=pretrain_data.transpose())
-
     
     pretrain_model = os.path.join(
         config['PATH_TO_MODELS'],
-        info['EDN_pre'])
+        info['phi_pre'])
         
     if not os.path.exists(pretrain_model):
         cmd = [config['TORCH'],
@@ -65,7 +66,7 @@ def train_EDN_object_agnostic(config, info, verbose=True):
             '-saveModel', pretrain_model,
             '-batchSize', '256',
             '-epochs', '20',
-            '-modelFile', config['EDN_def'],
+            '-modelFile', config['phi_def'],
             '-cuda']  
         print cmd
         subprocess.call( cmd )   
@@ -74,28 +75,28 @@ def train_EDN_object_agnostic(config, info, verbose=True):
     for i, (lo,hi) in enumerate(info['intervals']):
 
         # get targets for this interval
-        targets = info['EDN_targets'][i]
+        targets = info['phi_targets'][i]
         
         models = []
         for target in targets:
 
-            EDN_model = "EDN_" + \
-                os.path.splitext(info['EDN_train_files'][i])[0] +\
+            phi_model = "phi_" + \
+                os.path.splitext(info['phi_train_files'][i])[0] +\
                 "_" + str(target) + ".t7"
 
-            EDN_model_log = "EDN_" + \
-                os.path.splitext(info['EDN_train_files'][i])[0] +\
+            phi_model_log = "phi_" + \
+                os.path.splitext(info['phi_train_files'][i])[0] +\
                 "_" + str(target) + ".log"
 
-            trn_file = info['EDN_train_files'][i]
+            trn_file = info['phi_train_files'][i]
 
             cmd = [config['TORCH'],
-                config['TRAIN_EDN'],
+                config['TRAIN_PHI'],
                 '-dataFile',    os.path.join( config['PATH_TO_MODELS'], trn_file ),
-                '-modelEDN',    os.path.join( config['PATH_TO_MODELS'], info['EDN_pre']),
-                '-modelAR',     os.path.join( config['PATH_TO_MODELS'], info['AR_agnostic_model'] ),
-                '-saveModel',   os.path.join( config['PATH_TO_MODELS'], EDN_model),
-                '-logFile',     os.path.join( config['PATH_TO_MODELS'], EDN_model_log),
+                '-modelPHI',    os.path.join( config['PATH_TO_MODELS'], info['phi_pre']),
+                '-modelGAMMA',  os.path.join( config['PATH_TO_MODELS'], info['gamma_agnostic_model'] ),
+                '-saveModel',   os.path.join( config['PATH_TO_MODELS'], phi_model),
+                '-logFile',     os.path.join( config['PATH_TO_MODELS'], phi_model_log),
                 '-target',      str( target ), 
                 '-cuda',
                 '-epochs',      '50',
@@ -103,18 +104,16 @@ def train_EDN_object_agnostic(config, info, verbose=True):
             print cmd
             subprocess.call( cmd )
 
-            # add EDN_model file to the list of models for this interval
-            models.append(EDN_model)
+            # add phi_model file to the list of models for this interval
+            models.append(phi_model)
 
-        # add models for interval to our list of EDN_models
-        info['EDN_models'].append(tuple(models))
+        # add models for interval to our list of phi_models
+        info['phi_models'].append(tuple(models))
 
     return info
               
 
 def main():
-
-    # setup CMD-line parsing
     parser = setup_parser()
     (options, args) = parser.parse_args()
 
@@ -126,13 +125,11 @@ def main():
     info = yaml.load(fid)
     fid.close()
 
-    # training
-    info = train_EDN_object_agnostic(config, info)
+    info = train_phi_object_agnostic(config, info)
     
-    # save config file with trained models
-    f = open(options.output_file,'w')
-    yaml.dump(info, f)
-    f.close()
+    fid = open(options.output_file,'w')
+    yaml.dump(info, fid)
+    fid.close()
 
 
 if __name__ == "__main__":

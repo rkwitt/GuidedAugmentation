@@ -21,7 +21,7 @@ def setup_parser():
     return parser
 
 
-def set_EDN_targets(info, range=np.arange(1, 5, 0.5)):
+def set_phi_targets(info, range=np.arange(1, 5, 0.5)):
     """
     Configure attribute target values.
     """
@@ -32,7 +32,7 @@ def set_EDN_targets(info, range=np.arange(1, 5, 0.5)):
             if r >= lo and r <= hi:
                 continue
             targets.append(r)
-        info['EDN_targets'].append(tuple(targets))
+        info['phi_targets'].append(tuple(targets))
 
 
 def main():
@@ -53,24 +53,24 @@ def main():
         lo = float(parts[0]) # lower interval boundary
         hi = float(parts[1]) # upper interval boundary
 
-        EDN_train_file = parts[-1]
+        phi_train_file = parts[-1]
 
         if info is None:
             info = {
                 'intervals':            [],                 # [l_i, h_i]
-                'EDN_train_files' :     [],                 # Training data file for EDN
-                'EDN_pre' :             'EDN_pre.t7',       # Name of pretrained EDN model
-                'AR_agnostic_model':    'agnosticAR.t7',    # Name of pretrained AR model
-                'EDN_models':           [],                 # Will hold the final trained EDN models
-                'EDN_targets' :         []                  # Will hold the attribute target values for the EDN models
+                'phi_train_files' :     [],                 # Training data file for phi 
+                'phi_pre' :             'phi_pre.t7',       # Name of pretrained phi model
+                'gamma_agnostic_model': 'agnostic_gamma.t7',# Name of pretrained gamma model
+                'phi_models':           [],                 # Will hold the final trained phi model
+                'phi_targets' :         []                  # Will hold the attribute target values for the phi models
                 }
         info['intervals'].append((lo,hi))
-        info['EDN_train_files'].append(EDN_train_file)
+        info['phi_train_files'].append(phi_train_file)
 
     if options.attribute == "depth":
-        set_EDN_targets(info)
+        set_phi_targets(info)
     elif options.attribute == "pose":
-        set_EDN_targets(info, np.arange(np.deg2rad(45), np.pi, np.deg2rad(25)))
+        set_phi_targets(info, np.arange(np.deg2rad(45), np.pi, np.deg2rad(25)))
     else:
         print("Attribute %s unknown!", options.attribute)
         sys.exit(-1)

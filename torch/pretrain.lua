@@ -1,19 +1,19 @@
--- pretraining of AE part --
 require 'torch'
 require 'optim'
 require 'hdf5'
 require 'nn'
 
+
 -- cmdline parsing
 local cmd = torch.CmdLine()
-cmd:option('-logFile', '/tmp/pretrain.log', 'Logfile')
-cmd:option('-dataFile', '/tmp/data.hdf5', '(Input) HDF5 source data file')
-cmd:option('-modelFile', 'torch/autoencoder.lua')
-cmd:option('-saveModel', '/tmp/autoencoder.hdf5', '(Output) Save model to file')
-cmd:option('-learningRate', 0.001, 'Learning rate')
-cmd:option('-epochs', 10, 'Training epochs')
-cmd:option('-batchSize', 300, 'Batchsize')
-cmd:option('-cuda', false, 'Use CUDA')
+cmd:option('-logFile',        '/tmp/pretrain.log', 'Logfile')
+cmd:option('-dataFile',       '/tmp/data.hdf5', '(Input) HDF5 source data file')
+cmd:option('-modelFile',      'torch/phi.lua')
+cmd:option('-saveModel',      '/tmp/autoencoder.hdf5', '(Output) Save model to file')
+cmd:option('-learningRate',   0.001, 'Learning rate')
+cmd:option('-epochs',         10, 'Training epochs')
+cmd:option('-batchSize',      300, 'Batchsize')
+cmd:option('-cuda',           false, 'Use CUDA')
 local opt = cmd:parse(arg)
 
 -- try to use CUDA if required

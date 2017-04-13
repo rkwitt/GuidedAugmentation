@@ -1,15 +1,16 @@
--- train attribute regressor (AR)
+-- train attribute regressor (gamma)
 
 require 'nn'
 require 'optim'
 require 'hdf5'
 
+
 -- cmdline parsing
 local cmd = torch.CmdLine()
-cmd:option('-logFile',        '/tmp/train_AR.log',    'Logfile')
-cmd:option('-regModel',       'models/ar.lua',        'Attribute regressor (AR) model')
+cmd:option('-logFile',        '/tmp/train_gamma.log', 'Logfile')
+cmd:option('-regModel',       'models/gamma.lua',     'Attribute regressor model')
 cmd:option('-dataFile',       '',                     'HDF5 input data')
-cmd:option('-save',           '/tmp/model_AR.t7',     'Save model to file')
+cmd:option('-save',           '/tmp/model_gamma.t7',  'Save model to file')
 cmd:option('-column',         1,                      'Column of covariate data [1=Depth, 2=Pose]')
 cmd:option('-learningRate',   0.001,                  'Learning rate')
 cmd:option('-epochs',         10,                     '#Training epochs')

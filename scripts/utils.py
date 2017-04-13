@@ -2,13 +2,6 @@ import yaml
 
 
 def read_file(file, verbose=False):
-    """
-    Read file line by line into list.
-
-    Input: filename
-
-    Output: list of whitespace-stripped lines
-    """
     lines = None
     with open( file ) as fid:
         lines = fid.readlines()
@@ -18,13 +11,6 @@ def read_file(file, verbose=False):
     
 
 def read_config(file, verbose=False):
-    """
-    Read system config YAML file.
-
-    Input: YAML config file
-
-    Returns: dict
-    """
     if verbose:
         print "Read config file {}".format(file)
     fid = open(file, "r")

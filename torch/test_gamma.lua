@@ -1,14 +1,15 @@
---Test attribute regressor.
+--Test attribute regressor (gamma)
 
 require 'nn'
 require 'optim'
 require 'hdf5'
 
+
 -- cmdline parsing
 local cmd = torch.CmdLine()
 cmd:option('-dataFile',       '/tmp/data.hdf5',       'HDF5 file with features + covariate ground truth')
-cmd:option('-outputFile',     '/tmp/output.hdf5',     'HDF5 output file with covariate predictions + ground truth')
-cmd:option('-model',          '/tmp/model_AR.t7',     'Trained AR model')
+cmd:option('-outputFile',     '/tmp/output.hdf5',     'HF5 output file with covariate predictions + ground truth')
+cmd:option('-model',          '/tmp/model_gamma.t7',  'Trained model')
 cmd:option('-column',         1,                      'Column of covariate data [1=Depth, 2=Pose]')
 cmd:option('-eval',           false,                  'Evaluate (requires ground truth in data file)')
 cmd:option('-cuda',           false,                  'Use CUDA')

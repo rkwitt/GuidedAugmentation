@@ -1,20 +1,21 @@
---train encoder-decoder network.
+--train encoder-decoder network implementing phi
 
 require 'optim'
 require 'hdf5'
 require 'nn'
 
+
 -- cmdline parsing
 local cmd = torch.CmdLine()
 -- input/output files
 cmd:option('-dataFile',             '/tmp/data.hdf5',           'HDF5 data file')
-cmd:option('-saveModel',            '/tmp/model.t7',            'Save EDNAR model to file')
-cmd:option('-logFile',              '/tmp/train_EDN.log',       'Logfile')
+cmd:option('-saveModel',            '/tmp/model.t7',            'Save trained phi model to file')
+cmd:option('-logFile',              '/tmp/train_phi.log',       'Logfile')
 cmd:option('-target',               4,                          'Covariate target value')
 
 -- input models
-cmd:option('-modelEDN',              '/tmp/pretrainedEDN.t7',   'Pretrained encoder-decoder network (EDN)')
-cmd:option('-modelAR',               '/tmp/pretrainedAR.t7',    'Pretrained attribute regressor (AR)')
+cmd:option('-modelPhi',              '/tmp/pretrained_phi.t7',   'Pretrained encoder-decoder network (gamma)')
+cmd:option('-modelGamma',            '/tmp/pretrained_gamma.t7', 'Pretrained attribute regressor (phi)')
 
 -- misc. options
 cmd:option('-learningRate',         0.001,                      'Learning rate')
@@ -42,27 +43,27 @@ local N = src:size(1) -- nr. of data points
 local D = src:size(2) -- nr. of dimensions
 print('#Source data points: '..N..'x'..D)
 
--- load pretrained COR and freeze layers (these are not trained)
-local modelAR = torch.load(opt.modelAR)
-for i, m in ipairs(modelAR.modules) do
+-- load pretrained gamma and freeze layers (these are not trained)
+local modelGamma = torch.load(opt.modelGamma)
+for i, m in ipairs(modelGamma.modules) do
     m.accGradParameters = function() end
     m.updateParameters  = function() end
 end
-print('Froze AR layers')
+print('Froze gamma layers')
 
--- load pretrained EDN
-print( opt.modelEDN )
-modelEDN = torch.load(opt.modelEDN)
+-- load pretrained phi
+print( opt.modelPhi )
+modelPhi = torch.load(opt.modelPhi)
 
--- make Split NN
+-- split
 local modelSNN = nn.ConcatTable()
 modelSNN:add(nn.Identity())
-modelSNN:add(modelAR)
+modelSNN:add(modelGamma)
 
 -- stack model together
 model = nn.Sequential()
-model:add(modelEDN)
-model:add(modelSNN)
+model:add(modelPhi) 
+model:add(modelSNN) 
 
 if opt.cuda then
     model:cuda()
@@ -77,8 +78,8 @@ local theta, gradTheta = model:getParameters()
 
 -- MSE loss
 local criterion = nn.ParallelCriterion()
-criterion:add(nn.MSECriterion(),0.7) --MSE loss for features
-criterion:add(nn.MSECriterion(),0.3) --MSE loss for covariate
+criterion:add(nn.MSECriterion(),0.7) --MSE loss (regularizer)
+criterion:add(nn.MSECriterion(),0.3) --MSE loss (mismatch penalty)
 
 if opt.cuda then
     criterion:cuda()
@@ -126,7 +127,7 @@ for epoch = 1, opt.epochs do
     end
 end
 
---make sure we can save the trained EDN model
+--make sure we can save the trained phi model
 if opt.cuda then
     model = model:float()
 end
