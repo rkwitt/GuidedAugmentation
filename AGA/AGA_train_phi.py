@@ -31,14 +31,19 @@ def train_phi_object_agnostic(config, info, verbose=True):
     """
     Train phi_i^k, i.e., the encoder-decoder network implementing 
     the AGA synthesis function.
-    """
 
+    1. Pre-training (i.e., a simple autoencoder with all data)
+    2. Actual training with interval-specific data
+    """
+    
     # first, collect data for pre-training
-    pretrain_file = os.path.join(config['PATH_TO_MODELS'], 'phi_pre.hdf5')
+    pretrain_file = os.path.join(
+        config['PATH_TO_MODELS'], 
+        'PHI_pre.hdf5')
 
     pretrain_data = None
     if not os.path.exists(pretrain_file):
-        for trn_file in info['phi_train_files']:
+        for trn_file in info['PHI_train_files']: # interval-specific data
             with h5py.File( os.path.join( config['PATH_TO_MODELS'], trn_file ), 'r') as hf:
                 X = np.asarray( hf.get('X') ).transpose()
                 if verbose:
@@ -55,10 +60,11 @@ def train_phi_object_agnostic(config, info, verbose=True):
         with h5py.File( pretrain_file, 'w') as hf:
             hf.create_dataset('/X', data=pretrain_data.transpose())
     
+    # construct model file name
     pretrain_model = os.path.join(
         config['PATH_TO_MODELS'],
-        info['phi_pre'])
-        
+        info['PHI_pre'])
+
     if not os.path.exists(pretrain_model):
         cmd = [config['TORCH'],
             config['TRAIN_PRE'],
@@ -66,35 +72,35 @@ def train_phi_object_agnostic(config, info, verbose=True):
             '-saveModel', pretrain_model,
             '-batchSize', '256',
             '-epochs', '20',
-            '-modelFile', config['phi_def'],
+            '-modelFile', config['PHI_DEF'],
             '-cuda']  
         print cmd
         subprocess.call( cmd )   
 
-
+    # iterate over interval-specific data
     for i, (lo,hi) in enumerate(info['intervals']):
 
         # get targets for this interval
-        targets = info['phi_targets'][i]
+        targets = info['PHI_targets'][i]
         
         models = []
         for target in targets:
 
-            phi_model = "phi_" + \
-                os.path.splitext(info['phi_train_files'][i])[0] +\
+            phi_model = "PHI_" + \
+                os.path.splitext(info['PHI_train_files'][i])[0] +\
                 "_" + str(target) + ".t7"
 
-            phi_model_log = "phi_" + \
-                os.path.splitext(info['phi_train_files'][i])[0] +\
+            phi_model_log = "PHI_" + \
+                os.path.splitext(info['PHI_train_files'][i])[0] +\
                 "_" + str(target) + ".log"
 
-            trn_file = info['phi_train_files'][i]
+            trn_file = info['PHI_train_files'][i]
 
             cmd = [config['TORCH'],
                 config['TRAIN_PHI'],
                 '-dataFile',    os.path.join( config['PATH_TO_MODELS'], trn_file ),
-                '-modelPHI',    os.path.join( config['PATH_TO_MODELS'], info['phi_pre']),
-                '-modelGAMMA',  os.path.join( config['PATH_TO_MODELS'], info['gamma_agnostic_model'] ),
+                '-modelPhi',    os.path.join( config['PATH_TO_MODELS'], info['PHI_pre']),
+                '-modelGamma',  os.path.join( config['PATH_TO_MODELS'], info['GAMMA_agnostic_model'] ),
                 '-saveModel',   os.path.join( config['PATH_TO_MODELS'], phi_model),
                 '-logFile',     os.path.join( config['PATH_TO_MODELS'], phi_model_log),
                 '-target',      str( target ), 
@@ -108,7 +114,7 @@ def train_phi_object_agnostic(config, info, verbose=True):
             models.append(phi_model)
 
         # add models for interval to our list of phi_models
-        info['phi_models'].append(tuple(models))
+        info['PHI_models'].append(tuple(models))
 
     return info
               

@@ -50,8 +50,7 @@ model:evaluate()
 local Y_hat_PhiGamma = model:forward(X)[2]
 print(torch.mean(Y_hat_PhiGamma))
 
--- run data through phi to get synthesized 
--- features.
+-- run data through phi to get synthesized features.
 modelPhi:evaluate()
 local X_hat = modelPhi:forward(X)
 

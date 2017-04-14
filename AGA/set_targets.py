@@ -32,7 +32,7 @@ def set_phi_targets(info, range=np.arange(1, 5, 0.5)):
             if r >= lo and r <= hi:
                 continue
             targets.append(r)
-        info['phi_targets'].append(tuple(targets))
+        info['PHI_targets'].append(tuple(targets))
 
 
 def main():
@@ -58,14 +58,14 @@ def main():
         if info is None:
             info = {
                 'intervals':            [],                 # [l_i, h_i]
-                'phi_train_files' :     [],                 # Training data file for phi 
-                'phi_pre' :             'phi_pre.t7',       # Name of pretrained phi model
-                'gamma_agnostic_model': 'agnostic_gamma.t7',# Name of pretrained gamma model
-                'phi_models':           [],                 # Will hold the final trained phi model
-                'phi_targets' :         []                  # Will hold the attribute target values for the phi models
+                'PHI_train_files' :     [],                 # Training data file for phi 
+                'PHI_pre' :             'PHI_pre.t7',       # Name of pretrained phi model
+                'GAMMA_agnostic_model': 'agnosticGAMMA.t7', # Name of pretrained gamma model
+                'PHI_models':           [],                 # Will hold the final trained phi model
+                'PHI_targets' :         []                  # Will hold the attribute target values for the phi models
                 }
         info['intervals'].append((lo,hi))
-        info['phi_train_files'].append(phi_train_file)
+        info['PHI_train_files'].append(phi_train_file)
 
     if options.attribute == "depth":
         set_phi_targets(info)

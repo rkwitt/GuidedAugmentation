@@ -38,7 +38,7 @@ def read_RCNN_mat_file(file, verbose=False):
 
     Input: MATLAB .mat file with fields 
         -'CNN_features' 
-        [-'CNN_scores'] - optional
+        -'CNN_scores' (optional)
 
     Returns: features
     """
@@ -66,7 +66,7 @@ def implement_object_agnostic_covariate_estimate(config, X, model):
         if len(X.shape) == 1:
             X = X.reshape((X.shape[0],1))
         hf.create_dataset('/X', data=X) 
-    
+
     # call predictor
     cmd = [
         config['TORCH'],
@@ -74,12 +74,13 @@ def implement_object_agnostic_covariate_estimate(config, X, model):
         '-model', model,
         '-dataFile', tmp_data_file,
         '-outputFile', tmp_pred_file]
+        #-column UNUSED since we are not evaluating
     subprocess.call( cmd )
 
-    # read predictions (one prediction per feature x)
+    # read predictions (one prediction per feature x in X)
     vals = None
     with h5py.File( tmp_pred_file ,'r') as hf:
-        vals = np.asarray( hf.get('Y_hat')).reshape(-1)
+        vals = np.asarray(hf.get('Y_hat')).reshape(-1)
 
     # cleanup tmp files
     os.remove(tmp_data_file)
@@ -102,16 +103,18 @@ def object_agnostic_covariate_estimate(config, info, object_features, object_lab
     # iterate over all features
     for i in np.arange(N):
         
-        # get object agnostic COR model
-        model_AR = os.path.join(
+        # get object agnostic attribute regressor
+        model_gamma = os.path.join(
             config['PATH_TO_MODELS'], 
-            'agnosticAR.t7')
+            'agnosticGAMMA.t7')
+
+        assert os.path.isfile(model_gamma)==True, '%s missing!' % model_gamma
 
         # call actual implementation
         tmp_val = implement_object_agnostic_covariate_estimate(
             config, 
             object_features[i,:], 
-            model_AR)
+            model_gamma)
         [vals.append(x) for x in tmp_val]
 
     return vals
@@ -143,6 +146,13 @@ def implement_object_agnostic_synthesize(config, X, model):
    
     X_hat = None # Synthesized RCNN feature
     Y_hat = None # Covariate as predicted for the synthesized feature
+    """
+    TEST_PHI writes
+        - X,m x
+        - X_hat, phi(x)
+        - X_hat_PhiGamma, gamma(phi(x))
+        - X_hat_Gamma, gamma(x)
+    """
     with h5py.File( tmp_pred_file ,'r') as hf:
         X_hat = np.asarray( hf.get('X_hat'))
         Y_hat = np.asarray( hf.get('Y_hat_PhiGamma'))
@@ -151,7 +161,7 @@ def implement_object_agnostic_synthesize(config, X, model):
     os.remove(tmp_data_file)
     os.remove(tmp_pred_file)
 
-    # return AGA-syn. features + values of gamma for AGA-syn. features
+    # return AGA-syn. features + values of gamma(phi(x))
     return X_hat, Y_hat
 
 
@@ -180,6 +190,8 @@ def object_agnostic_synthesize(config, info, object_features, object_labels, cov
                     model_PhiGamma = os.path.join(
                         config['PATH_TO_MODELS'], 
                         info['PHI_models'][j][t])
+
+                    assert os.path.isfile(model_PhiGamma)==True, '%s missing!' % model_PhiGamma
 
                     tmp_X, tmp_Y = implement_object_agnostic_synthesize(
                         config, 

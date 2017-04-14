@@ -8,10 +8,10 @@ require 'hdf5'
 -- cmdline parsing
 local cmd = torch.CmdLine()
 cmd:option('-logFile',        '/tmp/train_gamma.log', 'Logfile')
-cmd:option('-regModel',       'models/gamma.lua',     'Attribute regressor model')
+cmd:option('-model',          'models/gamma.lua',     'Definition of attribute regressor model')
 cmd:option('-dataFile',       '',                     'HDF5 input data')
 cmd:option('-save',           '/tmp/model_gamma.t7',  'Save model to file')
-cmd:option('-column',         1,                      'Column of covariate data [1=Depth, 2=Pose]')
+cmd:option('-column',         1,                      'Column of attribute data [1=Depth, 2=Pose]')
 cmd:option('-learningRate',   0.001,                  'Learning rate')
 cmd:option('-epochs',         10,                     '#Training epochs')
 cmd:option('-batchSize',      300,                    'Batchsize')
@@ -27,9 +27,9 @@ if opt.cuda then
 end
 
 local fid = hdf5.open(opt.dataFile, 'r')
-local X = fid:read('X'):all():transpose(1,2)
-local Y = fid:read('Y'):all():transpose(1,2)
-local Y = Y[{{}, opt.column}] -- get column of target covariate values
+local X = fid:read('X'):all():transpose(1,2)    -- X hold features
+local Y = fid:read('Y'):all():transpose(1,2)    -- Y holds attribute values
+local Y = Y[{{}, opt.column}]                   -- get column of target attribute values
 fid:close()
 
 local N = X:size(1) -- #data points
@@ -39,7 +39,7 @@ print("Data:"..N.."x"..D)
 -- logger
 logger = optim.Logger(opt.logFile)
 
-regressor = dofile(opt.regModel)
+regressor = dofile(opt.model)
 print(regressor)
 if opt.cuda then
     regressor:cuda()

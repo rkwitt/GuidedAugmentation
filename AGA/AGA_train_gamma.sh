@@ -1,101 +1,85 @@
 #!/bin/bash
 
-#
-# Config
-#
 NCPU=2
+BASE_DIR="/scratch2/rkwitt/data/SUNRGBD/models/"
+TEST_GAMMA="../torch/test_gamma.lua"
+TRAIN_GAMMA="../torch/train_gamma.lua"
+MODEL_GAMMA="../torch/models/gamma.lua"
 
-########## POSE ##########
 
-TARGET_FOLDER="reproduce_pose"
+TARGET_FOLDER="depth"
 
-#
-# Train object-agnostic POSE ARs
-#
-th ../torch/train_AR.lua \
-    -dataFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/train.hdf5 \
-    -logFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/agnosticAR.log \
-    -save /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/agnosticAR.t7 \
-    -regModel ../torch/models/ar.lua \
-    -column 2 \
-    -cuda \
-    -epochs 50
-#
-# Train object-specific POSE ARs
-#
-cat SUNRGBD_objects.txt | grep -v others | grep -v  __background__ | parallel -j ${NCPU} th \
-    ../torch/train_AR.lua \
-    -dataFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/train.hdf5 \
-    -logFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/objectAR.log \
-    -save /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/objectAR.t7 \
-    -regModel ../torch/models/ar.lua \
-    -column 2 \
-    -epochs 30 \
-    -batchSize 64 \
+# train object-agnostic gamma
+th ${TRAIN_GAMMA} \
+    -dataFile   ${BASE_DIR}/${TARGET_FOLDER}/train.hdf5 \
+    -logFile    ${BASE_DIR}/${TARGET_FOLDER}/agnosticGAMMA.log \
+    -save       ${BASE_DIR}/${TARGET_FOLDER}/agnosticGAMMA.t7 \
+    -model      ${MODEL_GAMMA} \
+    -column     1 \
+    -epochs     50 \
     -cuda
-#
-# Test object-agnostic POSE ARs
-#
-cat SUNRGBD_objects.txt | grep -v others | grep -v  __background__ | parallel th ../torch/test_AR.lua \
-    -dataFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/test.hdf5 \
-    -outputFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/agnosticAR_predictions.hdf5 \
-    -model /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/agnosticAR.t7 \
-    -column 2 \
-    -eval \
-
-
-cat SUNRGBD_objects.txt | grep -v others | grep -v  __background__ | parallel th ../torch/test_AR.lua \
-    -dataFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/test.hdf5 \
-    -outputFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/objectAR_predictions.hdf5 \
-    -model /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/objectAR.t7 \
-    -column 2 \
-    -eval \
-
-
-########## DEPTH ##########
-
-TARGET_FOLDER="reproduce_depth"
-
-#
-# Train object-agnostic DEPTH ARs
-#
-th ../torch/train_AR.lua \
-    -dataFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/train.hdf5 \
-    -logFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/agnosticAR.log \
-    -save /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/agnosticAR.t7 \
-    -regModel ../torch/models/ar.lua \
-    -column 1 \
-    -cuda \
-    -epochs 50
-#
-# Train object-specific DEPTH ARs
-#
-cat SUNRGBD_objects.txt | grep -v others | grep -v  __background__ | parallel -j ${NCPU} th \
-    ../torch/train_AR.lua \
-    -dataFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/train.hdf5 \
-    -logFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/objectAR.log \
-    -save /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/objectAR.t7 \
-    -regModel ../torch/models/ar.lua \
-    -column 1 \
-    -epochs 30 \
-    -batchSize 64 \
+# train object-specific gamma
+cat ../data/SUNRGBD/objects.txt | grep -v others | grep -v  __background__ | parallel -j ${NCPU} th \
+    ${TRAIN_GAMMA} \
+    -dataFile   ${BASE_DIR}/${TARGET_FOLDER}/{.}/train.hdf5 \
+    -logFile    ${BASE_DIR}/${TARGET_FOLDER}/{.}/objectGAMMA.log \
+    -save       ${BASE_DIR}/${TARGET_FOLDER}/{.}/objectGAMMA.t7 \
+    -model      ${MODEL_GAMMA} \
+    -column     1 \
+    -epochs     30 \
+    -batchSize  64 \
     -cuda
-#
-# Test object-agnostic DEPTH ARs
-#
-cat SUNRGBD_objects.txt | grep -v others | grep -v  __background__ | parallel th ../torch/test_AR.lua \
-    -dataFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/test.hdf5 \
-    -outputFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/agnosticAR_predictions.hdf5 \
-    -model /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/agnosticAR.t7 \
-    -column 1 \
+# test object-agnostic gamma
+cat ../data/SUNRGBD/objects.txt | grep -v others | grep -v  __background__ | parallel th ${TEST_GAMMA} \
+    -dataFile   ${BASE_DIR}/${TARGET_FOLDER}/{.}/test.hdf5 \
+    -outputFile ${BASE_DIR}/${TARGET_FOLDER}/{.}/agnosticGAMMA_predictions.hdf5 \
+    -model      ${BASE_DIR}/${TARGET_FOLDER}/agnosticGAMMA.t7 \
+    -column     1 \
+    -eval
+# test object-specific gamma
+cat ../data/SUNRGBD/objects.txt | grep -v others | grep -v  __background__ | parallel th ${TEST_GAMMA} \
+    -dataFile   ${BASE_DIR}/${TARGET_FOLDER}/{.}/test.hdf5 \
+    -outputFile ${BASE_DIR}/${TARGET_FOLDER}/{.}/objectGAMMA_predictions.hdf5 \
+    -model      ${BASE_DIR}/${TARGET_FOLDER}/{.}/objectGAMMA.t7 \
+    -column     1 \
     -eval
 
-#
-# Test object-specific DEPTH ARs
-#
-cat SUNRGBD_objects.txt | grep -v others | grep -v  __background__ | parallel th ../torch/test_AR.lua \
-    -dataFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/test.hdf5 \
-    -outputFile /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/objectAR_predictions.hdf5 \
-    -model /scratch2/rkwitt/data/SUNRGBD/models/${TARGET_FOLDER}/{.}/objectAR.t7 \
-    -column 1 \
-    -eval
+
+# TARGET_FOLDER="pose"
+
+# train object-agnostic gamma
+${TRAIN_GAMMA} \
+    -dataFile   ${BASE_DIR}/${TARGET_FOLDER}/train.hdf5 \
+    -logFile    ${BASE_DIR}/${TARGET_FOLDER}/agnosticGAMMA.log \
+    -save       ${BASE_DIR}/${TARGET_FOLDER}/agnosticGAMMA.t7 \
+    -model      ${MODEL_GAMMA} \
+    -column     2 \
+    -epochs     50 \
+    -cuda
+# train object-specific gamma
+cat ../data/SUNRGBD/objects.txt | grep -v others | grep -v  __background__ | parallel -j ${NCPU} th \
+    ${TRAIN_GAMMA} \
+    -dataFile   ${BASE_DIR}/${TARGET_FOLDER}/{.}/train.hdf5 \
+    -logFile    ${BASE_DIR}/${TARGET_FOLDER}/{.}/objectGAMMA.log \
+    -save       ${BASE_DIR}/${TARGET_FOLDER}/{.}/objectGAMMA.t7 \
+    -model      ${MODEL_GAMMA} \
+    -column     2 \
+    -epochs     30 \
+    -batchSize  64 \
+    -cuda
+# test object agnostic gamma
+cat ../data/SUNRGBD/objects.txt | grep -v others | grep -v  __background__ | parallel -j ${NCPU} th \
+    ${TEST_GAMMA} \
+    -dataFile   ${BASE_DIR}/${TARGET_FOLDER}/{.}/test.hdf5 \
+    -outputFile ${BASE_DIR}/${TARGET_FOLDER}/{.}/agnosticGAMMA_predictions.hdf5 \
+    -model      ${BASE_DIR}/${TARGET_FOLDER}/agnosticGAMMA.t7 \
+    -column     2 \
+    -eval \
+# test object-specific gamma
+cat ../data/SUNRGBD/objects.txt | grep -v others | grep -v  __background__ | parallel -j ${NCPU} th \
+    ${TEST_GAMMA} \
+    -dataFile   ${BASE_DIR}/${TARGET_FOLDER}/{.}/test.hdf5 \
+    -outputFile ${BASE_DIR}/${TARGET_FOLDER}/{.}/objectGAMMA_predictions.hdf5 \
+    -model      ${BASE_DIR}/${TARGET_FOLDER}/{.}/objectGAMMA.t7 \
+    -column     2 \
+    -eval \
