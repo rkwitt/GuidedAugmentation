@@ -1,7 +1,7 @@
 # AGA : Attribute-Guided Augmentation
 
 This repository contains *code* and *data* for the following manuscript
-(please use this citation when using the code):
+(please use this citation format when using the code):
 
 ```
 @inproceedings{Dixit17a,
@@ -18,6 +18,7 @@ features change as a function of some auxiliary attribute*.
 
 ## Using pre-trained attribute models
 
+We will use `/scratch` as our base directory. 
 To use **pre-trained** (on SUN RGB-D) *pose* and *depth* models for AGA, first
 download the models using:
 
@@ -34,6 +35,15 @@ tar xvf pose_models_04142017.tar
 This will create directories `/scratch/pose` and `/scratch/depth` which contain
 all required files.
 
+## Checking out the code
+
+Use
+```bash
+cd /scratch
+git clone https://github.com/rkwitt/GuidedAugmentation.git
+```
+to check out the code from the Git repository.
+
 ## Example: AGA
 
 To show an example of how AGA can be used to synthesize features, we use the
@@ -47,9 +57,9 @@ tar xvfz T1.tar.gz
 ```
 
 We then copy the file `sys_config_depth_template.yaml` to
-`sys_config_depth.yaml`
+`sys_config_depth.yaml`, i.e.,
 ```bash
-cd AGA/config
+cd /scratch/GuidedAugmentation/config
 cp sys_config_depth_template.yaml sys_config_depth.yaml
 ```
 and edit `sys_config_depth.yaml` according to our system setup:
@@ -66,10 +76,10 @@ PATH_TO_MODELS: /scratch/models,
 TEMP_DIR:       /tmp/
 }
 ```
-We are then ready to run `AGA.py` on our `T1` images. For this, we
+We are now ready to run `AGA.py` on our image features in the `T1` folder. For this, we
 create a file which lists the full path of all images as
 ```bash
-find /scratch2/rkwitt/data/SUNRGBD/one-shot/T1 \
+find /scratch/T1 \
     -name '*.jpg' -exec sh -c 'printf "%s\n" "${0%.*}"' {} ';' > T1_list.txt
 ```
 Alternatively, you can use
