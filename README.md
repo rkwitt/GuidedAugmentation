@@ -3,6 +3,9 @@
 This repository contains *code* and *data* for the following manuscript
 (please use this citation format when using the code):
 
+*Disclaimer*: Code for using pretrained models is already online. Training
+code will be released ASAP.
+
 ```
 @inproceedings{Dixit17a,
     author    = {M.~Dixit and R.~Kwitt and M.~Niethammer and N.~Vasconcelos},
