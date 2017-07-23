@@ -3,8 +3,9 @@
 This repository contains *code* and *data* for the following manuscript
 (please use this citation format when using the code):
 
-*Disclaimer*: Code for using pretrained models is already online. Training
-code will be released ASAP.
+**Note**: A PyTorch implementation of the full pipeline is in active 
+development and will replace this repository eventually (after CVPR17). 
+See https://github.com/rkwitt/AGA for details.
 
 ```
 @inproceedings{Dixit17a,
